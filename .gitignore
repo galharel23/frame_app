@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+*.env
+
+# IDE/OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs / temp
+*.log
+*.tmp
+*.bak
+
+# Project outputs
+output/
+fail_output/
+TO_QGIS/
+*.jpw
+
+# Media (לא לעקוב אחרי קבצים כבדים בריפו)
+*.JPG
+*.JPEG
+*.PNG
+*.MP4
+*.MOV
+*.zip
+
+# Config
+config.json
