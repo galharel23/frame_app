@@ -11,6 +11,33 @@ from shutil import which
 import shutil
 import base64
 
+def normalize_azimuth(a: float) -> float:
+    """Normalize azimuth/yaw to 0–360 degrees."""
+    if a is None:
+        return 0.0
+    # ExifTool sometimes returns -180..180
+    if a < 0:
+        return a + 360
+    if a >= 360:
+        return a % 360
+    return a
+
+def normalize_pitch(p: float) -> float:
+    """Normalize pitch to -90..90 and fix wrap-around (0..360 cases)."""
+    if p is None:
+        return 0.0
+
+    # 1. Convert to range -180..+180
+    p = ((p + 180) % 360) - 180
+
+    # 2. Clamp to DJI valid range
+    if p < -90:
+        return -90.0
+    if p > 90:
+        return 90.0
+
+    return p
+
 
 def _read_drone_type_from_config(folder_path: str) -> str:
     """
@@ -341,10 +368,11 @@ def build_camera_position(tags, lat, lon, image_path):
         "gpsLongitude": lon,
         "gpsAltitude": get_altitude("GPS GPSAltitude", 0.0),
         "relativeAltitude": relative_alt,
-        "losAzimuth": los_fields["losAzimuth"],
-        "losPitch": los_fields["losPitch"],
+        "losAzimuth": normalize_azimuth(los_fields["losAzimuth"]),
+        "losPitch": normalize_pitch(los_fields["losPitch"]),
         "losRoll": los_fields["losRoll"]
     }
+
 
 def build_platform_data_old(tags, drone_type: str):
     return {
@@ -403,9 +431,10 @@ def build_platform_data(tags, drone_type: str, image_path: str):
         elif abs_alt is not None:
             msl_alt = abs_alt  # הערה: לרוב אליפסואידי ב-DJI, אבל זה הכי קרוב אם אין GPSAltitude תקף
 
-        if yaw_exif   is not None: yaw   = yaw_exif
-        if pitch_exif is not None: pitch = pitch_exif
-        if roll_exif  is not None: roll  = roll_exif
+        if yaw_exif is not None: yaw = normalize_azimuth(yaw_exif)
+        if pitch_exif is not None: pitch = normalize_pitch(pitch_exif)
+        if roll_exif is not None: roll = roll_exif
+
 
     except Exception as e:
         # נשארים עם ברירת המחדל (tags/0.0) אם ExifTool לא קיים/נכשל
