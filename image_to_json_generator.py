@@ -11,6 +11,8 @@ from shutil import which
 import shutil
 import base64
 
+# I will add here the XMP second json func
+
 def normalize_azimuth(a: float) -> float:
     """Normalize azimuth/yaw to 0–360 degrees."""
     if a is None:
@@ -373,7 +375,6 @@ def build_camera_position(tags, lat, lon, image_path):
         "losRoll": los_fields["losRoll"]
     }
 
-
 def build_platform_data_old(tags, drone_type: str):
     return {
         "platformName": drone_type,
@@ -451,7 +452,6 @@ def build_platform_data(tags, drone_type: str, image_path: str):
         "platformRoll": roll
     }
 
-
 def build_operational_data():
     return {
         "missionNumber": None,
@@ -474,10 +474,6 @@ def build_json_structure(filename, tags, lat, lon, full_path, drone_type: str):
         "Operational": build_operational_data(),
         "SensorSpecificData": build_sensor_specific_data(),
     }
-
-
-# 
-
 
 # -------------------------------
 # JPW / QGIS helpers
@@ -576,7 +572,6 @@ def prepare_data_for_qgis(session_dir: str):
                 print(f" Copied {image_file_name}, {file}, and {jpw_file_name} to TO_QGIS")
             except Exception as e:
                 print(f" Failed copying files to TO_QGIS: {e}")
-
 
 # -------------------------------
 # Main processing
@@ -701,7 +696,6 @@ def process_images_to_individual_json(session_dir: str, drone_type: str | None =
     print(f"Failed extractions saved to: {fail_output_dir}")
 
     return session_dir
-
 
 # -------------------------------
 # Optional: LOG decoding (base64)
