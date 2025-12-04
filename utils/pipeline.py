@@ -5,10 +5,9 @@ from typing import Iterable, List, Dict
 from datetime import datetime
 from pathlib import Path
 
-from image_to_json_generator import (
-    process_images_to_individual_json,
-    prepare_data_for_qgis,
-)
+from image_to_json_generator import process_images_to_individual_json
+from qgis_service import prepare_data_for_qgis
+
 
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".gif"}
 
@@ -44,57 +43,6 @@ def _image_name_from_json(json_path: str) -> str:
         return Path(json_path).stem + ".JPG"
 
 import math
-
-def _create_jpw_from_json(json_path: str):
-    """
-    יוצר קובץ JPW לפי נתוני ה-JSON שלך (DJI / Modash)
-    רק שינוי קנה-מידה ומיקום — בלי מתיחה או סיבוב.
-    """
-    try:
-        with open(json_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-
-        basic = data.get("BasicData", {})
-        camera_pos = data.get("CameraPosition", {})
-
-        res = basic.get("resolution")  # מטר לפיקסל
-        width = basic.get("width")
-        height = basic.get("height")
-        lon = camera_pos.get("gpsLongitude")
-        lat = camera_pos.get("gpsLatitude")
-
-        if not all([res, width, height, lon, lat]):
-            print(f"Skipping JPW creation for {json_path} — missing data")
-            return
-
-        # המרה למטרים (Web Mercator)
-        R = 6378137.0
-        x_center = R * math.radians(lon)
-        y_center = R * math.log(math.tan(math.pi / 4 + math.radians(lat) / 2))
-
-        # חישוב פינה שמאלית-עליונה
-        C = x_center - (width / 2) * res
-        F = y_center + (height / 2) * res
-
-        # רק שינוי גודל — אין סיבוב
-        A = res      # pixel size X
-        D = 0.0
-        B = 0.0
-        E = -res     # pixel size Y (שלילי)
-
-        # כתיבת JPW
-        jpw_path = os.path.splitext(json_path)[0] + ".jpw"
-        with open(jpw_path, "w", encoding="utf-8") as jf:
-            jf.write(f"{A}\n{D}\n{B}\n{E}\n{C}\n{F}\n")
-
-        print(f"JPW created (no distortion): {jpw_path}")
-
-    except Exception as ex:
-        print(f"JPW generation failed for {json_path}: {ex}")
-
-
-
-
 
 def run_whitening(
     selected_paths: Iterable[str],
@@ -163,21 +111,6 @@ def run_whitening(
                 jp = os.path.join(fail_dir, jf)
                 img_name = _image_name_from_json(jp)
                 results.setdefault(img_name, {"status": "failed", "json_path": jp})
-
-    # 8) יצירת קובצי JPW והעברת התמונות ל-output
-    for img_name, info in results.items():
-        json_path = info["json_path"]
-        _create_jpw_from_json(json_path)
-
-        # העברת התמונה ל-output (אם קיימת בתיקיית הסשן)
-        img_src = os.path.join(session_used, img_name)
-        img_dst = os.path.join(output_dir, img_name)
-        if os.path.isfile(img_src):
-            try:
-                shutil.move(img_src, img_dst)
-            except Exception:
-                # אם כבר קיימת — נניח שהיא כבר שם
-                pass
 
     return {
         "session_dir": session_used,
