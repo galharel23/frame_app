@@ -1,17 +1,31 @@
+from encodings.punycode import digits
 import os
 import json
 from datetime import datetime
 
 from exif_service import (
     extract_xmp_metadata,
-    calculate_resolution,
     get_los_fields,
     extract_relative_altitude,
-    get_float,
-    normalize_azimuth,
-    normalize_pitch,
     run_exiftool,
 )
+
+from utils_service import get_float
+
+from geo_math_service import (
+    calculate_resolution,
+    normalize_azimuth,
+    normalize_pitch,
+)
+
+from utils_service import (
+     get_float, 
+     to_float_rounded,
+     to_float,
+    )
+
+
+# Build each sector
 
 def build_basic_data(filename, tags, full_path):
     width = int(str(tags.get("EXIF ExifImageWidth", "0")))
@@ -80,8 +94,8 @@ def build_camera_data(tags):
     except Exception:
         fx, fy = 0.0, 0.0
     return {
-        "focalLengthInPixelsX": fx,
-        "focalLengthInPixelsY": fy,
+        "focalLengthInPixelsX": round(fx,4),
+        "focalLengthInPixelsY": round(fy,4),
         "foVX": 82.9,
         "foVY": 52.5,
         "cx": width / 2.0,
@@ -118,9 +132,9 @@ def build_camera_position(tags, lat, lon, image_path):
         "gpsLongitude": lon,
         "gpsAltitude": get_altitude("GPS GPSAltitude", 0.0),
         "relativeAltitude": relative_alt,
-        "losAzimuth": normalize_azimuth(los_fields["losAzimuth"]),
-        "losPitch": normalize_pitch(los_fields["losPitch"]),
-        "losRoll": los_fields["losRoll"],
+        "losAzimuth": round(normalize_azimuth(los_fields["losAzimuth"]),4),
+        "losPitch": round(normalize_pitch(los_fields["losPitch"]),4),
+        "losRoll": round(los_fields["losRoll"],4),
     }
 
 def build_platform_data(tags, drone_type, image_path):
@@ -153,18 +167,16 @@ def build_platform_data(tags, drone_type, image_path):
         )
         data = json.loads(cp.stdout)[0] if cp.stdout else {}
 
-        def to_float(v):
-            try:
-                return float(str(v).replace("+", "").strip())
-            except Exception:
-                return None
+
+        
 
         gps_alt = to_float(data.get("GPSAltitude"))
         gps_alt_ref = to_float(data.get("GPSAltitudeRef"))
         abs_alt = to_float(data.get("AbsoluteAltitude"))
-        yaw_exif = to_float(data.get("FlightYawDegree"))
-        pitch_exif = to_float(data.get("FlightPitchDegree"))
-        roll_exif = to_float(data.get("FlightRollDegree"))
+        
+        yaw_exif = to_float_rounded(data.get("FlightYawDegree"), digits=4)
+        pitch_exif = to_float_rounded(data.get("FlightPitchDegree"), digits=4)
+        roll_exif = to_float_rounded(data.get("FlightRollDegree"), digits=4)
 
         if gps_alt is not None and (gps_alt_ref is None or int(gps_alt_ref) == 0):
             msl_alt = gps_alt
@@ -204,6 +216,8 @@ def build_sensor_specific_data():
         "sixDofSource": None,
         "groundRef": None,
     }
+
+# Build full Skeleton
 
 def build_json_structure(filename, tags, lat, lon, full_path, drone_type):
     return {

@@ -1,44 +1,13 @@
 import os
 import json
+from string import digits
 import subprocess
 import re
-import math
 from xml.etree import ElementTree as ET
 from pathlib import Path
 from shutil import which
 
-
-# -------------------------------
-# Normalize helpers
-# -------------------------------
-
-def normalize_azimuth(a):
-    """Normalize azimuth/yaw to 0–360 degrees."""
-    if a is None:
-        return 0.0
-    a = float(a)
-    if a < 0:
-        return a + 360.0
-    if a >= 360.0:
-        return a % 360.0
-    return a
-
-def normalize_pitch(p):
-    """Normalize pitch to -90..90 and fix wrap-around (0..360 cases)."""
-    if p is None:
-        return 0.0
-
-    p = float(p)
-    # 1. Convert to range -180..+180
-    p = ((p + 180.0) % 360.0) - 180.0
-
-    # 2. Clamp to DJI valid range
-    if p < -90.0:
-        return -90.0
-    if p > 90.0:
-        return 90.0
-
-    return p
+from utils_service import to_float_rounded
 
 # -------------------------------
 # ExifTool resolution & wrapper
@@ -146,15 +115,6 @@ def extract_gps_info_from_tags(tags):
         print(f"Error extracting GPS info: {e}")
         return None, None
 
-def get_float(tag_name, tags, default=0.0):
-    val = tags.get(tag_name)
-    if val:
-        try:
-            return float(str(val))
-        except Exception:
-            pass
-    return default
-
 def extract_xmp_metadata(image_path):
     """Extract XMP metadata from image file"""
     try:
@@ -177,22 +137,6 @@ def extract_xmp_metadata(image_path):
         print(f"Error extracting XMP metadata: {str(e)}")
         return None
 
-def calculate_resolution(width, height, fov_x, fov_y, altitude):
-    """
-    Calculate resolution in meters per pixel
-    """
-    fov_x_rad = math.radians(fov_x)
-    fov_y_rad = math.radians(fov_y)
-    ground_width = 2 * altitude * math.tan(fov_x_rad / 2)
-    ground_height = 2 * altitude * math.tan(fov_y_rad / 2)
-    resolution_x = ground_width / width if width else 0
-    resolution_y = ground_height / height if height else 0
-    return (
-        round((resolution_x + resolution_y) / 2, 5)
-        if (resolution_x and resolution_y)
-        else 0.0
-    )
-
 def get_los_fields(image_path):
     """
     מחלץ זוויות/כיוונים של הגימבל באמצעות ExifTool.
@@ -211,16 +155,10 @@ def get_los_fields(image_path):
         )
         data = json.loads(cp.stdout)[0] if cp.stdout else {}
 
-        def to_float(val):
-            try:
-                return float(val)
-            except Exception:
-                return 0.0
-
         return {
-            "losAzimuth": to_float(data.get("GimbalYawDegree")),
-            "losPitch": to_float(data.get("GimbalPitchDegree")),
-            "losRoll": to_float(data.get("GimbalRollDegree")),
+            "losAzimuth": to_float_rounded(data.get("GimbalYawDegree"), digits = 4),
+            "losPitch": to_float_rounded(data.get("GimbalPitchDegree"), digits = 4),
+            "losRoll": to_float_rounded(data.get("GimbalRollDegree"), digits = 4),
         }
     except FileNotFoundError as e:
         print(f"Warning: ExifTool not found: {e}")

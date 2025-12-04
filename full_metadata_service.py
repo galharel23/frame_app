@@ -1,35 +1,10 @@
 import os
 import json
-import subprocess
 from typing import Iterable
 
-def _resolve_exiftool_path() -> str:
-    """
-    מחפש את exiftool כך:
-    1) אם קיים EXIFTOOL_PATH במשתני סביבה – נשתמש בו
-    2) אחרת ננסה 'exiftool' מתוך ה-PATH
-    """
-    env_p = os.environ.get("EXIFTOOL_PATH")
-    if env_p:
-        return env_p
-
-    # ברירת מחדל – נסמוך על זה שהוא ב-PATH
-    return "exiftool"
-
-
-EXIFTOOL_PATH = _resolve_exiftool_path()
-
-
-def run_exiftool(args: list[str]) -> subprocess.CompletedProcess:
-    """
-    הרצה של ExifTool (ללא shell=True).
-    """
-    cmd = [EXIFTOOL_PATH] + args
-    return subprocess.run(cmd, capture_output=True, text=True, check=True)
-
+from exif_service import run_exiftool
 
 IMG_EXTS = (".jpg", ".jpeg", ".dng", ".JPG", ".JPEG", ".DNG", ".png", ".PNG")
-
 
 def iter_image_files(session_dir: str) -> Iterable[str]:
     """
@@ -42,7 +17,6 @@ def iter_image_files(session_dir: str) -> Iterable[str]:
         if not name.endswith(IMG_EXTS):
             continue
         yield name
-
 
 def generate_full_metadata_json(session_dir: str, output_dir: str) -> None:
     """
