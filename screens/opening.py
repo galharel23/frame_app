@@ -2,30 +2,8 @@
 from __future__ import annotations
 import flet as ft
 from pathlib import Path
-import sys, os
 
-def _resource(rel_path: str) -> str:
-    rel = Path(rel_path)
-
-    if hasattr(sys, "_MEIPASS"):  #  exe
-        base = Path(sys._MEIPASS)
-        return str(base / rel)
-
-    #  כשמריצים ישירות עם python
-    return str(Path(__file__).resolve().parent.parent / rel)
-
-    target_lower = rel.name.lower()
-    for b in bases:
-        folder = (b / rel.parent)
-        if folder.exists():
-            for f in folder.iterdir():
-                if f.name.lower() == target_lower:
-                    return str(f.resolve())
-    return rel_path
-
-DRONE_IMG = _resource("image/Drone.gif")
-LOGO_IMG = _resource("image/logo.png")   #  הלוגו
-
+from consts import (LOGO_IMG, DRONE_IMG)
 
 def build_opening_screen(on_start):
 

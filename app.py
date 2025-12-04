@@ -76,12 +76,10 @@ def main(page: ft.Page):
         page.add(build_image_select_screen(page))
         page.update()
 
-
     # --------------------------
     # 🔹 מסך פתיחה
     # --------------------------
     page.add(build_opening_screen(on_start=go_to_select))
-
 
 # ---------------------------------------------------------
 # 🔸 הרצה כאפליקציה
