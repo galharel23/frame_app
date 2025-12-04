@@ -695,11 +695,72 @@ def process_images_to_individual_json(session_dir: str, drone_type: str | None =
     print(f"\nSuccessful extractions saved to: {output_dir}")
     print(f"Failed extractions saved to: {fail_output_dir}")
 
+    ### second JSON
+    try:
+        generate_full_metadata_json(session_dir, output_dir)
+    except Exception as e:
+        print(f"Warning: could not generate all-metadata JSON: {e}")
+
     return session_dir
 
 # -------------------------------
 # Optional: LOG decoding (base64)
 # -------------------------------
+
+# -------------------------------
+# Full metadata JSON (ExifTool -json)
+# -------------------------------
+
+def generate_full_metadata_json(session_dir: str, output_dir: str) -> None:
+    """
+    עבור כל תמונה בתיקיית הסשן (session_dir), מריץ ExifTool בפורמט JSON
+    ושומר קובץ JSON נפרד עם *כל* המטא־דאטה של התמונה, בשם:
+        <image_name>_all_metadata_file.json
+    בתוך תיקיית ה-output.
+    """
+    img_exts = (".jpg", ".jpeg", ".dng", ".JPG", ".JPEG", ".DNG", ".png", ".PNG")
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    for name in os.listdir(session_dir):
+        full_path = os.path.join(session_dir, name)
+
+        if not os.path.isfile(full_path):
+            continue
+        if not name.endswith(img_exts):
+            continue
+
+        print(f"Creating full metadata JSON for image: {name}")
+
+        try:
+            # ExifTool -json יחזיר מערך של אובייקט אחד
+            cp = run_exiftool(["-json", full_path])
+            if not cp.stdout:
+                print(f"ExifTool returned no JSON output for {name}")
+                continue
+
+            try:
+                meta_list = json.loads(cp.stdout)
+            except json.JSONDecodeError as e:
+                print(f"Failed to parse ExifTool JSON output for {name}: {e}")
+                continue
+
+            if not meta_list:
+                print(f"No metadata objects returned for {name}")
+                continue
+
+            full_meta = meta_list[0]
+
+            base, _ = os.path.splitext(name)
+            out_path = os.path.join(output_dir, f"{base}_all_metadata_file.json")
+
+            with open(out_path, "w", encoding="utf-8") as f:
+                json.dump(full_meta, f, ensure_ascii=False, indent=2)
+
+            print(f"✅ Full metadata JSON created: {out_path}")
+
+        except Exception as e:
+            print(f"⚠ Failed to create full metadata JSON for {name}: {e}")
 
 def extract_platform_data_from_log(log_file_path):
     """
