@@ -1,4 +1,5 @@
-﻿import flet as ft
+﻿# not is use at all
+import flet as ft
 import asyncio, os, shutil, sys, subprocess
 from pathlib import Path
 from image_to_json_generator import process_images_to_individual_json, prepare_data_for_qgis
