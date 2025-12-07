@@ -32,16 +32,6 @@ def _read_drone_type_from_config(folder_path: str) -> str:
         print(f"Warning: could not read config.json: {e}")
     return "Unknown platform"
 
-def _make_session_dir(base_dir: str) -> tuple[str, str]:
-    """
-    יוצר תיקיית סשן בשם חותמת זמן בתוך base_dir.
-    מחזיר (session_dir, session_name).
-    """
-    session_name = datetime.now().strftime("%Y%m%d_%H%M%S")
-    session_dir = os.path.join(base_dir, session_name)
-    os.makedirs(session_dir, exist_ok=True)
-    return session_dir, session_name
-
 # -------------------------------
 # Main processing
 # -------------------------------
