@@ -3,6 +3,8 @@ import flet as ft
 import asyncio
 import sys, os
 from pathlib import Path
+# ---------------------------------------------------------
+# 🔹 ייבוא מסכים ופונקציות עזר
 from screens.opening import build_opening_screen
 from screens.image_select import build_image_select_screen
 from utils.exiftool_setup import ensure_exiftool_on_path
