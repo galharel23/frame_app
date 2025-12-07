@@ -15,6 +15,8 @@ from exif_service import (
 )
 from json_builders_service import build_json_structure
 
+# Main processing
+
 def _read_drone_type_from_config(folder_path: str) -> str:
     """
     קורא את config.json (אם קיים) ומחזיר את שדה 'drone_type'.
@@ -32,8 +34,6 @@ def _read_drone_type_from_config(folder_path: str) -> str:
         print(f"Warning: could not read config.json: {e}")
     return "Unknown platform"
 
-# Main processing
-
 def _ensure_output_dirs(session_dir: str) -> tuple[str, str]:
     """
     Ensure that output/ and fail_output/ directories exist inside the session directory.
@@ -50,7 +50,7 @@ def _ensure_output_dirs(session_dir: str) -> tuple[str, str]:
 def _iter_session_images(session_dir: str):
     """
     Iterate over image filenames in the session directory.
-    Only regular files ending with .jpg/.jpeg (case-insensitive) are yielded.
+    Only regular files ending with .jpg/.jpeg/ .png (case-insensitive) are yielded.
     """
     files = os.listdir(session_dir)
     print(f"Found {len(files)} files")
@@ -61,7 +61,7 @@ def _iter_session_images(session_dir: str):
         # Skip folders and non-image files
         if not os.path.isfile(full_path):
             continue
-        if not filename.lower().endswith((".jpg", ".jpeg")):
+        if not filename.lower().endswith((".jpg", ".jpeg", ".png")):
             print(f"Skipping (not an image): {filename}")
             continue
 
