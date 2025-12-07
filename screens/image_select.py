@@ -48,8 +48,10 @@ def build_image_select_screen(page: ft.Page):
         width=320,
     )
 
-    log_file = {"path": None}
-    selected_log_path = ft.Text("לא נבחר קובץ log", color="#9aa0a6", size=13)
+    # 🔻 LOG selection is now disabled – no log file used in the flow
+    # log_file = {"path": None}
+    # selected_log_path = ft.Text("לא נבחר קובץ log", color="#9aa0a6", size=13)
+
     selected_files: Set[str] = set()
     files_counter = ft.Text("נבחרו 0 קבצי תמונה", size=14, color="#cccccc")
 
@@ -68,24 +70,27 @@ def build_image_select_screen(page: ft.Page):
     )
 
     # --- Pickers ---
-    log_picker = ft.FilePicker(
-        on_result=lambda e: (
-            log_file.__setitem__("path", e.files[0].path if (e.files and e.files[0].path) else None),
-            setattr(
-                selected_log_path,
-                "value",
-                e.files[0].path if (e.files and e.files[0].path) else "לא נבחר קובץ log",
-            ),
-            setattr(selected_log_path, "color", "#9aa0a6"),
-            setattr(error_text, "value", ""),
-            page.update(),
-        )
-    )
-    page.overlay.append(log_picker)
+    # 🔻 Remove log picker from UI/logic
+    # log_picker = ft.FilePicker(
+    #     on_result=lambda e: (
+    #         log_file.__setitem__("path", e.files[0].path if (e.files and e.files[0].path) else None),
+    #         setattr(
+    #             selected_log_path,
+    #             "value",
+    #             e.files[0].path if (e.files and e.files[0].path) else "לא נבחר קובץ log",
+    #         ),
+    #         setattr(selected_log_path, "color", "#9aa0a6"),
+    #         setattr(error_text, "value", ""),
+    #         page.update(),
+    #     )
+    # )
+    # page.overlay.append(log_picker)
 
     imgs_picker = ft.FilePicker(
         on_result=lambda e: (
-            selected_files.update([f.path for f in (e.files or []) if f.path and _is_image(f.path)]),
+            selected_files.update(
+                [f.path for f in (e.files or []) if f.path and _is_image(f.path)]
+            ),
             setattr(error_text, "value", ""),
             refresh_files_ui(),
         )
@@ -94,7 +99,9 @@ def build_image_select_screen(page: ft.Page):
 
     dir_picker = ft.FilePicker(
         on_result=lambda e: (
-            selected_files.update(_gather_images_in_dir(e.path)) if (getattr(e, "path", None)) else None,
+            selected_files.update(_gather_images_in_dir(e.path))
+            if (getattr(e, "path", None))
+            else None,
             setattr(error_text, "value", ""),
             refresh_files_ui(),
         )
@@ -141,11 +148,15 @@ def build_image_select_screen(page: ft.Page):
                 if os.path.isdir(f.path):
                     for p in _gather_images_in_dir(f.path):
                         if p not in selected_files:
-                            selected_files.add(p); added += 1
+                            selected_files.add(p)
+                            added += 1
                 elif _is_image(f.path) and f.path not in selected_files:
-                    selected_files.add(f.path); added += 1
+                    selected_files.add(f.path)
+                    added += 1
         if added == 0:
-            page.snack_bar = ft.SnackBar(ft.Text("לא נוספו קבצים (ודאו שמדובר בתמונות/תיקיות)"))
+            page.snack_bar = ft.SnackBar(
+                ft.Text("לא נוספו קבצים (ודאו שמדובר בתמונות/תיקיות)")
+            )
             page.snack_bar.open = True
         error_text.value = ""
         refresh_files_ui()
@@ -156,44 +167,61 @@ def build_image_select_screen(page: ft.Page):
         pass
 
     # --- Controls ---
-    pick_log_btn = ft.TextButton(
-        "בחרו קובץ לוג…",
-        on_click=lambda _: log_picker.pick_files(allow_multiple=False, allowed_extensions=["log", "txt", "csv"]),
+
+    # 🔻 Log controls removed
+    # pick_log_btn = ft.TextButton(
+    #     "בחרו קובץ לוג…",
+    #     on_click=lambda _: log_picker.pick_files(
+    #         allow_multiple=False, allowed_extensions=["log", "txt", "csv"]
+    #     ),
+    # )
+
+    # def on_no_log_toggle(e):
+    #     if no_log_cb.value:
+    #         pick_log_btn.disabled = True
+    #         selected_log_path.value = "לא נדרש קובץ log"
+    #         selected_log_path.color = "#7fd37f"
+    #         log_file["path"] = None
+    #     else:
+    #         pick_log_btn.disabled = False
+    #         selected_log_path.value = "לא נבחר קובץ log"
+    #         selected_log_path.color = "#9aa0a6"
+    #     error_text.value = ""
+    #     page.update()
+
+    # no_log_cb = ft.Checkbox(
+    #     label="אין קובץ לוג (דלג)", value=False, on_change=on_no_log_toggle
+    # )
+
+    add_folder_btn = ft.FilledButton(
+        "בחרו תיקייה…", on_click=lambda _: dir_picker.get_directory_path()
     )
-
-    def on_no_log_toggle(e):
-        if no_log_cb.value:
-            pick_log_btn.disabled = True
-            selected_log_path.value = "לא נדרש קובץ log"
-            selected_log_path.color = "#7fd37f"
-            log_file["path"] = None
-        else:
-            pick_log_btn.disabled = False
-            selected_log_path.value = "לא נבחר קובץ log"
-            selected_log_path.color = "#9aa0a6"
-        error_text.value = ""
-        page.update()
-
-    no_log_cb = ft.Checkbox(label="אין קובץ לוג (דלג)", value=False, on_change=on_no_log_toggle)
-
-    add_folder_btn = ft.FilledButton("בחרו תיקייה…", on_click=lambda _: dir_picker.get_directory_path())
-    add_files_btn  = ft.OutlinedButton(
-        "בחרו תמונות…", on_click=lambda _: imgs_picker.pick_files(allow_multiple=True, file_type=ft.FilePickerFileType.IMAGE)
+    add_files_btn = ft.OutlinedButton(
+        "בחרו תמונות…",
+        on_click=lambda _: imgs_picker.pick_files(
+            allow_multiple=True, file_type=ft.FilePickerFileType.IMAGE
+        ),
     )
     clear_btn = ft.IconButton(
-        icon=ft.Icons.DELETE_OUTLINE, tooltip="נקה בחירה",
-        on_click=lambda _: (selected_files.clear(), setattr(error_text, "value", ""), refresh_files_ui()),
+        icon=ft.Icons.DELETE_OUTLINE,
+        tooltip="נקה בחירה",
+        on_click=lambda _: (
+            selected_files.clear(),
+            setattr(error_text, "value", ""),
+            refresh_files_ui(),
+        ),
     )
 
     async def on_submit_clicked(e):
-        # ולידציה בסיסית
+        # Basic validation
         problems = []
         if not selected_drone.value:
             problems.append("• לא נבחר סוג רחפן")
         if len(selected_files) == 0:
             problems.append("• לא נבחרו תמונות")
-        if (not no_log_cb.value) and (not log_file["path"]):
-            problems.append("• יש לבחור קובץ log או לסמן 'אין קובץ לוג (דלג)'")
+        # 🔻 Removed log validations:
+        # if (not no_log_cb.value) and (not log_file["path"]):
+        #     problems.append("• יש לבחור קובץ log או לסמן 'אין קובץ לוג (דלג)'")
 
         if problems:
             error_text.value = "\n".join(problems)
@@ -203,53 +231,53 @@ def build_image_select_screen(page: ft.Page):
             error_text.value = ""
             page.update()
 
-        # דיאלוג התקדמות + מצב טעינה לכפתור
+        # Progress dialog + button loading state
         page.dialog = progress_dlg
         progress_dlg.open = True
         set_button_loading(True)
-        page.update()  # <<< היה await page.update_async()
+        page.update()
 
         try:
-            # הרצה בבקגראונד כדי לא לחסום את ה־UI
+            # Run whitening in background thread so the UI stays responsive
             result = await asyncio.to_thread(
                 run_whitening,
                 list(selected_files),
                 selected_drone.value,
-                None if no_log_cb.value else log_file["path"],
-                no_log_cb.value,
+                None,   # 🔻 no log file is used
+                True,   # 🔻 "skip log" flag – adjust if your signature changes
             )
         except Exception as err:
             progress_dlg.open = False
             set_button_loading(False)
-            page.update()  # <<< היה await page.update_async()
+            page.update()
             error_text.value = f"שגיאה בעיבוד: {err}"
             page.update()
             return
         finally:
             progress_dlg.open = False
 
-        # במקרה של הצלחה – עוברים למסך התוצאות
+        # On success – go to results screen
         set_button_loading(False)
-        page.update()  # <<< היה await page.update_async()
+        page.update()
 
-        # כפתור "הלבנה נוספת"
         def back_to_select(_):
             page.controls.clear()
             page.add(build_image_select_screen(page))
             page.update()
 
-        # מעבר למסך התוצאות
         page.controls.clear()
         page.add(build_results_screen(page, result, on_again=back_to_select))
         page.update()
 
     submit_btn = ft.ElevatedButton(
-        "שלח להלבנה", bgcolor="#3b82f6", color="white",
+        "שלח להלבנה",
+        bgcolor="#3b82f6",
+        color="white",
         style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
         on_click=on_submit_clicked,
     )
 
-    # --- פונקציית עזר: מצב טעינה לכפתור ---
+    # --- Helper: button loading state ---
     def set_button_loading(is_loading: bool):
         if is_loading:
             submit_btn.disabled = True
@@ -262,14 +290,14 @@ def build_image_select_screen(page: ft.Page):
                 alignment=ft.MainAxisAlignment.CENTER,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
             )
-            submit_btn.text = None  # אין גם text וגם content
+            submit_btn.text = None
         else:
             submit_btn.disabled = False
             submit_btn.content = None
             submit_btn.text = "שלח להלבנה"
         page.update()
 
-    # ---- כפתור חזרה (ימין-עליון) בשורה ייעודית ----
+    # ---- Back button (top-right) ----
     def back_to_opening(_):
         page.controls.clear()
         page.add(
@@ -277,7 +305,7 @@ def build_image_select_screen(page: ft.Page):
                 on_start=lambda __: (
                     page.controls.clear(),
                     page.add(build_image_select_screen(page)),
-                    page.update()
+                    page.update(),
                 )
             )
         )
@@ -299,7 +327,7 @@ def build_image_select_screen(page: ft.Page):
         padding=ft.Padding(0, 16, 16, 0),
     )
 
-    # --- Layout (כותרת בתוך הכרטיס) ---
+    # --- Layout ---
     header = ft.Text("בחירת התמונות", size=32, weight=ft.FontWeight.BOLD, color="white")
     header_row = ft.Row([header], alignment=ft.MainAxisAlignment.CENTER)
 
@@ -307,9 +335,10 @@ def build_image_select_screen(page: ft.Page):
         [
             header_row,
             selected_drone,
-            ft.Row([pick_log_btn, no_log_cb], spacing=12, alignment=ft.MainAxisAlignment.START),
-            ft.Text("קובץ log נבחר:", size=12, color="#9aa0a6"),
-            selected_log_path,
+            # 🔻 Removed log UI:
+            # ft.Row([pick_log_btn, no_log_cb], spacing=12, alignment=ft.MainAxisAlignment.START),
+            # ft.Text("קובץ log נבחר:", size=12, color="#9aa0a6"),
+            # selected_log_path,
             ft.Divider(opacity=0.1),
             ft.Text("הוספת תמונות", size=14, weight=ft.FontWeight.W_600, color="#e0e0e0"),
             ft.Row([add_folder_btn, add_files_btn, clear_btn], spacing=10),
@@ -326,7 +355,6 @@ def build_image_select_screen(page: ft.Page):
 
     main_card = ft.Card(content=ft.Container(padding=24, content=body))
 
-    # --- דף מלא: כפתור ימין-עליון + הכרטיס ממורכז ---
     return ft.Column(
         controls=[
             back_btn_container,
