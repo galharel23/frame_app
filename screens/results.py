@@ -5,6 +5,7 @@ import os, sys, subprocess
 from pathlib import Path
 from typing import Dict
 
+
 def _open_native(path: str, page: ft.Page, select: bool = False):
     try:
         if os.name == "nt":
@@ -19,11 +20,14 @@ def _open_native(path: str, page: ft.Page, select: bool = False):
                 subprocess.Popen(["open", path])
         else:
             # select לא נתמך אמין בלינוקס – נפתח תיקייה או קובץ
-            subprocess.Popen(["xdg-open", path if Path(path).exists() else str(Path(path).parent)])
+            subprocess.Popen(
+                ["xdg-open", path if Path(path).exists() else str(Path(path).parent)]
+            )
     except Exception as e:
         page.snack_bar = ft.SnackBar(ft.Text(f"שגיאה בפתיחה: {e}"))
         page.snack_bar.open = True
         page.update()
+
 
 def _status_chip(ok: bool):
     return ft.Container(
@@ -34,11 +38,16 @@ def _status_chip(ok: bool):
             spacing=6,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
-                ft.Icon(ft.Icons.CHECK_CIRCLE, size=16) if ok else ft.Icon(ft.Icons.ERROR, size=16),
-                ft.Text("הצלחה" if ok else "כשלון", size=12, color="#e8e8e8")
+                (
+                    ft.Icon(ft.Icons.CHECK_CIRCLE, size=16)
+                    if ok
+                    else ft.Icon(ft.Icons.ERROR, size=16)
+                ),
+                ft.Text("הצלחה" if ok else "כשלון", size=12, color="#e8e8e8"),
             ],
         ),
     )
+
 
 def build_results_screen(page: ft.Page, processing_result: Dict, on_again):
     """
@@ -59,12 +68,23 @@ def build_results_screen(page: ft.Page, processing_result: Dict, on_again):
     output_dir = processing_result.get("output_dir", "")
     fail_output_dir = processing_result.get("fail_output_dir", "")
     results: Dict = processing_result.get("results", {})
+    
+    parent_output_dir = str(Path(output_dir).parent) if output_dir else ""
+
 
     list_tiles = []
+
     for image_name, info in results.items():
         ok = info.get("status") == "success"
-        json_path = info.get("json_path") or ""
+        json_path = info.get("json_path") or ""   # full JSON file path (string)
         reason = info.get("reason", "")
+
+        # Full path to the JSON file
+        json_file_path = json_path
+
+        # Folder that contains the JSON file
+        json_dir_path = str(Path(json_file_path).parent) if json_file_path else ""
+
         list_tiles.append(
             ft.Card(
                 content=ft.Container(
@@ -75,7 +95,12 @@ def build_results_screen(page: ft.Page, processing_result: Dict, on_again):
                             ft.Row(
                                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                                 controls=[
-                                    ft.Text(image_name, size=16, weight=ft.FontWeight.W_600, color="white"),
+                                    ft.Text(
+                                        image_name,
+                                        size=16,
+                                        weight=ft.FontWeight.W_600,
+                                        color="white",
+                                    ),
                                     _status_chip(ok),
                                 ],
                             ),
@@ -84,36 +109,71 @@ def build_results_screen(page: ft.Page, processing_result: Dict, on_again):
                                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                                 controls=[
                                     ft.Text("JSON:", size=12, color="#9aa0a6"),
-                                    ft.Text(json_path or "לא קיים", size=12, color="#cfcfcf", selectable=True),
+                                    ft.Text(
+                                        json_file_path or "לא קיים",
+                                        size=12,
+                                        color="#cfcfcf",
+                                        selectable=True,
+                                    ),
                                 ],
                             ),
                             ft.Row(
                                 spacing=8,
                                 controls=[
-                                    ft.TextButton("פתח JSON", disabled=not json_path, on_click=lambda _, p=json_path: _open_native(p, page, select=True)),
-                                    ft.TextButton("פתח תיקיית JSON", disabled=not json_path, on_click=lambda _, p=json_path: _open_native(str(Path(p).parent), page)),
+                                    # פותח את קובץ ה-JSON עצמו
+                                    ft.TextButton(
+                                        "פתח JSON",
+                                        disabled=not json_file_path,
+                                        on_click=lambda _, p=json_file_path: _open_native(
+                                            p, page
+                                        ),
+                                    ),
+                                    # פותח את התיקייה שבה ה-JSON נמצא
+                                    ft.TextButton(
+                                        "פתח תיקיית JSON",
+                                        disabled=not json_dir_path,
+                                        on_click=lambda _, p=json_dir_path: _open_native(
+                                            p, page
+                                        ),
+                                    ),
                                 ],
                             ),
-                            (ft.Text(f"סיבה: {reason}", size=12, color="#d18181") if (not ok and reason) else ft.Container()),
+                            (
+                                ft.Text(f"סיבה: {reason}", size=12, color="#d18181")
+                                if (not ok and reason)
+                                else ft.Container()
+                            ),
                         ],
                     ),
                 )
             )
         )
 
+
     summary_bar = ft.Row(
         spacing=10,
         controls=[
-            ft.TextButton("פתח ZIP", disabled=not zip_path, on_click=lambda _: _open_native(zip_path, page, select=True)),
-            ft.TextButton("פתח תיקיית פלט", disabled=not output_dir, on_click=lambda _: _open_native(output_dir, page)),
-            ft.TextButton("פתח תיקיית כשלונות", disabled=not fail_output_dir, on_click=lambda _: _open_native(fail_output_dir, page)),
-            ft.TextButton("פתח תיקיית עבודה", disabled=not workdir, on_click=lambda _: _open_native(workdir, page)),
+            ft.TextButton(
+                "פתח ZIP",
+                disabled=not zip_path,
+                on_click=lambda _: _open_native(zip_path, page, select=True),
+            ),
+            ft.TextButton(
+                "פתח תיקיית פלט",
+                disabled=not output_dir,
+                on_click=lambda _: _open_native(parent_output_dir, page),
+            ),
+            ft.TextButton(
+                "פתח תיקיית כשלונות",
+                disabled=not fail_output_dir,
+                on_click=lambda _: _open_native(fail_output_dir, page),
+            ),
         ],
     )
 
     again_btn = ft.ElevatedButton(
         text="הלבנה נוספת",
-        icon=ft.Icons.AUTORENEW,   # חץ מעגלי
+        icon=ft.Icons.AUTORENEW,  # חץ מעגלי
         on_click=on_again,
         bgcolor="#374151",
         color="white",
