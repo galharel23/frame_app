@@ -1,7 +1,7 @@
 from encodings.punycode import digits
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 from exif_service import (
     extract_xmp_metadata,
@@ -25,20 +25,73 @@ from utils_service import (
     )
 
 
+def _build_imaging_time_utc(tags) -> str:
+    """Return imaging time as a UTC ISO-8601 string.
+
+    Preference order:
+    1. GPS date/time tags (which are defined as UTC in EXIF):
+       - "GPS GPSDate" or "GPS GPSDateStamp" (e.g. "2024:12:19")
+       - "GPS GPSTimeStamp" (three rational values: H, M, S)
+    2. Fallback to "EXIF DateTimeOriginal" assuming it is already UTC.
+    """
+    # 1) Try GPS date/time (UTC by definition)
+    try:
+        gps_date_tag = tags.get("GPS GPSDate") or tags.get("GPS GPSDateStamp")
+        gps_time_tag = tags.get("GPS GPSTimeStamp")
+
+        if gps_date_tag and gps_time_tag and hasattr(gps_time_tag, "values"):
+            date_str = str(gps_date_tag)  # "YYYY:MM:DD"
+            parts = date_str.split(":")
+            if len(parts) == 3:
+                year, month, day = map(int, parts)
+
+                vals = gps_time_tag.values
+
+                def _ratio_to_float(r):
+                    return float(r.num) / float(r.den)
+
+                hour = int(_ratio_to_float(vals[0]))
+                minute = int(_ratio_to_float(vals[1]))
+                sec_float = _ratio_to_float(vals[2])
+                second = int(sec_float)
+                micro = int(round((sec_float - second) * 1_000_000))
+
+                dt = datetime(
+                    year,
+                    month,
+                    day,
+                    hour,
+                    minute,
+                    second,
+                    micro,
+                    tzinfo=timezone.utc,
+                )
+                # Trim trailing zeros in microseconds if not needed
+                iso = dt.isoformat().replace("+00:00", "Z")
+                return iso
+    except Exception as e:
+        print(f"Warning: Could not build imaging time from GPS tags: {e}")
+
+    # 2) Fallback: use DateTimeOriginal and mark it as UTC (best-effort)
+    try:
+        imaging_time_raw = str(tags.get("EXIF DateTimeOriginal", ""))
+        if imaging_time_raw:
+            dt = datetime.strptime(imaging_time_raw, "%Y:%m:%d %H:%M:%S")
+            dt = dt.replace(tzinfo=timezone.utc)
+            return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    except Exception as e:
+        print(f"Warning: Could not format imaging time from EXIF DateTimeOriginal: {e}")
+
+    return ""
+
+
 # Build each sector
 
 def build_basic_data(filename, tags, full_path):
     width = int(str(tags.get("EXIF ExifImageWidth", "0")))
     height = int(str(tags.get("EXIF ExifImageLength", "0")))
 
-    try:
-        imaging_time = str(tags.get("EXIF DateTimeOriginal", ""))
-        if imaging_time:
-            dt = datetime.strptime(imaging_time, "%Y:%m:%d %H:%M:%S")
-            imaging_time = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-    except Exception as e:
-        print(f"Warning: Could not format imaging time: {e}")
-        imaging_time = ""
+    imaging_time = _build_imaging_time_utc(tags)
 
     try:
         print(f"Attempting to calculate resolution for: {filename}")
