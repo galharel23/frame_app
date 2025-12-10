@@ -3,6 +3,7 @@ import json
 import exifread
 import base64
 import re
+import shutil
 from datetime import datetime
 
 from full_metadata_service import generate_full_metadata_json
@@ -125,19 +126,34 @@ def _process_single_image(
 
         # Decide which folder to use for the JSON output
         if has_los_fields and has_relative_alt:
-            output_path = os.path.join(
-                output_dir,
-                f"{os.path.splitext(filename)[0]}.json",
-            )
-            print(f"✅ Successfully extracted critical fields: {output_path}")
+            # Successful image: create a dedicated folder inside output/
+            base_name, _ = os.path.splitext(filename)
+            image_dir = os.path.join(output_dir, base_name)
+            os.makedirs(image_dir, exist_ok=True)
+
+            # Copy the original image into its folder (for easier per-image inspection)
+            try:
+                shutil.copy2(full_path, os.path.join(image_dir, filename))
+            except Exception:
+                # Non-fatal: continue even if image copy fails
+                pass
+
+            output_path = os.path.join(image_dir, f"{base_name}.json")
+            print(f" Successfully extracted critical fields: {output_path}")
             _write_json(output_path, json_data)
             return "success"
 
         # Missing some critical fields → goes to fail_output
-        output_path = os.path.join(
-            fail_output_dir,
-            f"{os.path.splitext(filename)[0]}.json",
-        )
+        base_name, _ = os.path.splitext(filename)
+        fail_image_dir = os.path.join(fail_output_dir, base_name)
+        os.makedirs(fail_image_dir, exist_ok=True)
+
+        try:
+            shutil.copy2(full_path, os.path.join(fail_image_dir, filename))
+        except Exception:
+            pass
+
+        output_path = os.path.join(fail_image_dir, f"{base_name}.json")
         missing = []
         if not has_los_fields:
             missing.append("LOS fields (azimuth/pitch)")

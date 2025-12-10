@@ -51,7 +51,15 @@ def generate_full_metadata_json(session_dir: str, output_dir: str) -> None:
             full_meta = meta_list[0]
 
             base, _ = os.path.splitext(name)
-            out_path = os.path.join(output_dir, f"{base}_all_metadata_file.json")
+
+            # Put the full-metadata JSON inside the per-image folder under output/.
+            # This assumes that the main processing step already created
+            #   output/<base>/
+            # but we `exist_ok=True` in case it does not.
+            image_dir = os.path.join(output_dir, base)
+            os.makedirs(image_dir, exist_ok=True)
+
+            out_path = os.path.join(image_dir, f"{base}_all_metadata_file.json")
 
             with open(out_path, "w", encoding="utf-8") as f:
                 json.dump(full_meta, f, ensure_ascii=False, indent=2)

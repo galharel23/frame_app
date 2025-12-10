@@ -34,6 +34,23 @@ def _create_session_dir() -> tuple[str, str]:
     return session_dir, session_name
 
 
+def _gather_main_jsons(root_dir: str) -> List[str]:
+    """Collect all "main" JSONs under a directory, skipping full-metadata files.
+
+    Works for both the old flat layout (files directly under root_dir)
+    and the new per-image subfolder layout.
+    """
+    json_files: List[str] = []
+    for dirpath, _, files in os.walk(root_dir):
+        for f in files:
+            if not f.lower().endswith(".json"):
+                continue
+            if f.endswith("_all_metadata_file.json"):
+                continue
+            json_files.append(os.path.join(dirpath, f))
+    return json_files
+
+
 def _image_name_from_json(json_path: str) -> str:
     try:
         with open(json_path, "r", encoding="utf-8") as f:
@@ -99,18 +116,14 @@ def run_whitening(
     results: Dict[str, Dict] = {}
 
     if os.path.isdir(output_dir):
-        for jf in sorted(os.listdir(output_dir)):
-            if jf.lower().endswith(".json"):
-                jp = os.path.join(output_dir, jf)
-                img_name = _image_name_from_json(jp)
-                results[img_name] = {"status": "success", "json_path": jp}
+        for jp in sorted(_gather_main_jsons(output_dir)):
+            img_name = _image_name_from_json(jp)
+            results[img_name] = {"status": "success", "json_path": jp}
 
     if os.path.isdir(fail_dir):
-        for jf in sorted(os.listdir(fail_dir)):
-            if jf.lower().endswith(".json"):
-                jp = os.path.join(fail_dir, jf)
-                img_name = _image_name_from_json(jp)
-                results.setdefault(img_name, {"status": "failed", "json_path": jp})
+        for jp in sorted(_gather_main_jsons(fail_dir)):
+            img_name = _image_name_from_json(jp)
+            results.setdefault(img_name, {"status": "failed", "json_path": jp})
 
     return {
         "session_dir": session_used,

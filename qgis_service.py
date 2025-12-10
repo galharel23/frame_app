@@ -3,9 +3,17 @@ import json
 import math
 import shutil
 
+
 def prepare_data_for_qgis(session_dir: str) -> None:
-    """
-    Creates TO_QGIS folder in the session dir containing .jpg + .json + .jpw for each valid image.
+    """Create TO_QGIS with .jpg + .json + .jpw for each valid image.
+
+    Supports both the old flat layout (JSONs directly under output/)
+    and the new per-image layout:
+
+        output/<image_base>/<image_base>.json
+        output/<image_base>/<image_base>_all_metadata_file.json
+        output/<image_base>/<image_base>.jpw
+        output/<image_base>/<image_file>
     """
     output_dir = os.path.join(session_dir, "output")
     to_qgis_dir = os.path.join(session_dir, "TO_QGIS")
@@ -15,19 +23,32 @@ def prepare_data_for_qgis(session_dir: str) -> None:
         print(f"Output dir not found: {output_dir}")
         return
 
-    for file in os.listdir(output_dir):
-        if file.lower().endswith('.json'):
-            json_path = os.path.join(output_dir, file)
+    # Walk recursively to support per-image subfolders under output/
+    for root, _, files in os.walk(output_dir):
+        for file in files:
+            if not file.lower().endswith(".json"):
+                continue
+
+            # Skip the full-metadata JSONs which don't have BasicData
+            if file.endswith("_all_metadata_file.json"):
+                continue
+
+            json_path = os.path.join(root, file)
 
             try:
-                with open(json_path, 'r', encoding='utf-8') as f:
+                with open(json_path, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    image_file_name = data['BasicData']['imageFile']
+                    image_file_name = data["BasicData"]["imageFile"]
             except Exception as e:
                 print(f" Failed reading JSON {file}: {e}")
                 continue
 
-            image_path = os.path.join(session_dir, image_file_name)
+            # Prefer the image placed next to the JSON (new layout),
+            # but fall back to the session root (old layout) if needed.
+            image_path = os.path.join(os.path.dirname(json_path), image_file_name)
+            if not os.path.exists(image_path):
+                image_path = os.path.join(session_dir, image_file_name)
+
             if not os.path.exists(image_path):
                 print(f" Image not found for JSON: {image_file_name}")
                 continue
@@ -35,7 +56,13 @@ def prepare_data_for_qgis(session_dir: str) -> None:
             create_jpw_from_json(json_path)
 
             jpw_file_name = os.path.splitext(image_file_name)[0] + ".jpw"
-            jpw_path = os.path.join(output_dir, jpw_file_name)
+
+            # JPW is written beside the JSON in the new layout.
+            jpw_path = os.path.join(os.path.dirname(json_path), jpw_file_name)
+            if not os.path.exists(jpw_path):
+                # Backwards-compatibility: look in the flat output dir.
+                jpw_path = os.path.join(output_dir, jpw_file_name)
+
             if not os.path.exists(jpw_path):
                 print(f" JPW file not created for: {image_file_name}")
                 continue
@@ -44,7 +71,9 @@ def prepare_data_for_qgis(session_dir: str) -> None:
                 shutil.copy2(image_path, os.path.join(to_qgis_dir, image_file_name))
                 shutil.copy2(json_path, os.path.join(to_qgis_dir, file))
                 shutil.copy2(jpw_path, os.path.join(to_qgis_dir, jpw_file_name))
-                print(f" Copied {image_file_name}, {file}, and {jpw_file_name} to TO_QGIS")
+                print(
+                    f" Copied {image_file_name}, {file}, and {jpw_file_name} to TO_QGIS"
+                )
             except Exception as e:
                 print(f" Failed copying files to TO_QGIS: {e}")
 
