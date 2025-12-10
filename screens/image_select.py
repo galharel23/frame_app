@@ -39,13 +39,14 @@ def build_image_select_screen(page: ft.Page):
     # --- State ---
     selected_drone = ft.Dropdown(
         options=[
-            ft.dropdown.Option("DJI Mavic 350"),
+            ft.dropdown.Option("DJI M350 RTK"),
             ft.dropdown.Option("DJI Padam"),
         ],
         label="סוג הרחפן",
         hint_text="בחרו את הדגם",
         autofocus=True,
         width=320,
+        value="DJI M350 RTK",  # ברירת מחדל
     )
 
     # 🔻 LOG selection is now disabled – no log file used in the flow
