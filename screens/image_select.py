@@ -41,6 +41,8 @@ def build_image_select_screen(page: ft.Page):
         options=[
             ft.dropdown.Option("DJI M350 RTK"),
             ft.dropdown.Option("DJI Padam"),
+            ft.dropdown.Option("Autel Alpha"),
+            ft.dropdown.Option("EVO Max 4N"),
         ],
         label="סוג הרחפן",
         hint_text="בחרו את הדגם",
