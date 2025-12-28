@@ -9483,6 +9483,23 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="consts"></a>
+  <a target="code" href="///C:/Users/DELL/Desktop/white_box/consts.py" type="text/plain"><tt>consts</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#pathlib">pathlib</a>
+ &#8226;   <a href="#sys">sys</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#screens.opening">screens.opening</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="contextlib"></a>
   <a target="code" href="///C:/Users/DELL/AppData/Local/Programs/Python/Python313/Lib/contextlib.py" type="text/plain"><tt>contextlib</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
@@ -9998,6 +10015,7 @@ imported by:
  &#8226;   <a href="#httpx._client">httpx._client</a>
  &#8226;   <a href="#httpx._models">httpx._models</a>
  &#8226;   <a href="#image_to_json_generator">image_to_json_generator</a>
+ &#8226;   <a href="#json_builders_service">json_builders_service</a>
  &#8226;   <a href="#oauthlib.common">oauthlib.common</a>
  &#8226;   <a href="#oauthlib.oauth2.rfc6749.utils">oauthlib.oauth2.rfc6749.utils</a>
  &#8226;   <a href="#psutil">psutil</a>
@@ -12725,6 +12743,7 @@ imports:
 imported by:
     <a href="#app.py">app.py</a>
  &#8226;   <a href="#encodings">encodings</a>
+ &#8226;   <a href="#json_builders_service">json_builders_service</a>
 
   </div>
 
@@ -13260,6 +13279,33 @@ imported by:
  &#8226;   <a href="#anyio._backends._trio">anyio._backends._trio</a>
  &#8226;   <a href="#anyio._core._exceptions">anyio._core._exceptions</a>
  &#8226;   <a href="#anyio._core._sockets">anyio._core._sockets</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="exif_service"></a>
+  <a target="code" href="///C:/Users/DELL/Desktop/white_box/exif_service.py" type="text/plain"><tt>exif_service</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#json">json</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#pathlib">pathlib</a>
+ &#8226;   <a href="#re">re</a>
+ &#8226;   <a href="#shutil">shutil</a>
+ &#8226;   <a href="#string">string</a>
+ &#8226;   <a href="#subprocess">subprocess</a>
+ &#8226;   <a href="#utils_service">utils_service</a>
+ &#8226;   <a href="#xml.etree">xml.etree</a>
+ &#8226;   <a href="#xml.etree.ElementTree">xml.etree.ElementTree</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#full_metadata_service">full_metadata_service</a>
+ &#8226;   <a href="#image_to_json_generator">image_to_json_generator</a>
+ &#8226;   <a href="#json_builders_service">json_builders_service</a>
 
   </div>
 
@@ -20085,6 +20131,25 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="full_metadata_service"></a>
+  <a target="code" href="///C:/Users/DELL/Desktop/white_box/full_metadata_service.py" type="text/plain"><tt>full_metadata_service</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#exif_service">exif_service</a>
+ &#8226;   <a href="#json">json</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#image_to_json_generator">image_to_json_generator</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="functools"></a>
   <a target="code" href="///C:/Users/DELL/AppData/Local/Programs/Python/Python313/Lib/functools.py" type="text/plain"><tt>functools</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
@@ -20255,6 +20320,22 @@ imported by:
     <a href="#app.py">app.py</a>
  &#8226;   <a href="#ntpath">ntpath</a>
  &#8226;   <a href="#posixpath">posixpath</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="geo_math_service"></a>
+  <a target="code" href="///C:/Users/DELL/Desktop/white_box/geo_math_service.py" type="text/plain"><tt>geo_math_service</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#math">math</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#json_builders_service">json_builders_service</a>
 
   </div>
 
@@ -22633,16 +22714,14 @@ imported by:
 imports:
     <a href="#base64">base64</a>
  &#8226;   <a href="#datetime">datetime</a>
+ &#8226;   <a href="#exif_service">exif_service</a>
  &#8226;   <a href="#exifread">exifread</a>
+ &#8226;   <a href="#full_metadata_service">full_metadata_service</a>
  &#8226;   <a href="#json">json</a>
- &#8226;   <a href="#math">math</a>
+ &#8226;   <a href="#json_builders_service">json_builders_service</a>
  &#8226;   <a href="#os">os</a>
- &#8226;   <a href="#pathlib">pathlib</a>
  &#8226;   <a href="#re">re</a>
  &#8226;   <a href="#shutil">shutil</a>
- &#8226;   <a href="#subprocess">subprocess</a>
- &#8226;   <a href="#xml.etree">xml.etree</a>
- &#8226;   <a href="#xml.etree.ElementTree">xml.etree.ElementTree</a>
 
   </div>
   <div class="import">
@@ -23532,6 +23611,7 @@ imports:
 imported by:
     <a href="#app.py">app.py</a>
  &#8226;   <a href="#charset_normalizer.models">charset_normalizer.models</a>
+ &#8226;   <a href="#exif_service">exif_service</a>
  &#8226;   <a href="#flet.auth.authorization">flet.auth.authorization</a>
  &#8226;   <a href="#flet.auth.oauth_token">flet.auth.oauth_token</a>
  &#8226;   <a href="#flet.core.audio_recorder">flet.core.audio_recorder</a>
@@ -23559,6 +23639,7 @@ imported by:
  &#8226;   <a href="#flet.core.webview">flet.core.webview</a>
  &#8226;   <a href="#flet.flet_socket_server">flet.flet_socket_server</a>
  &#8226;   <a href="#flet.pyodide_connection">flet.pyodide_connection</a>
+ &#8226;   <a href="#full_metadata_service">full_metadata_service</a>
  &#8226;   <a href="#httpx._content">httpx._content</a>
  &#8226;   <a href="#httpx._main">httpx._main</a>
  &#8226;   <a href="#httpx._models">httpx._models</a>
@@ -23567,6 +23648,7 @@ imported by:
  &#8226;   <a href="#json.decoder">json.decoder</a>
  &#8226;   <a href="#json.encoder">json.encoder</a>
  &#8226;   <a href="#json.scanner">json.scanner</a>
+ &#8226;   <a href="#json_builders_service">json_builders_service</a>
  &#8226;   <a href="#numpy.__config__">numpy.__config__</a>
  &#8226;   <a href="#numpy.testing._private.utils">numpy.testing._private.utils</a>
  &#8226;   <a href="#oauthlib.oauth2.rfc6749.endpoints.introspect">oauthlib.oauth2.rfc6749.endpoints.introspect</a>
@@ -23580,6 +23662,7 @@ imported by:
  &#8226;   <a href="#oauthlib.oauth2.rfc8628.grant_types.device_code">oauthlib.oauth2.rfc8628.grant_types.device_code</a>
  &#8226;   <a href="#oauthlib.openid.connect.core.endpoints.userinfo">oauthlib.openid.connect.core.endpoints.userinfo</a>
  &#8226;   <a href="#oauthlib.openid.connect.core.grant_types.base">oauthlib.openid.connect.core.grant_types.base</a>
+ &#8226;   <a href="#qgis_service">qgis_service</a>
  &#8226;   <a href="#rich.highlighter">rich.highlighter</a>
  &#8226;   <a href="#rich.json">rich.json</a>
  &#8226;   <a href="#utils.pipeline">utils.pipeline</a>
@@ -23640,6 +23723,28 @@ imports:
 imported by:
     <a href="#json">json</a>
  &#8226;   <a href="#json.decoder">json.decoder</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="json_builders_service"></a>
+  <a target="code" href="///C:/Users/DELL/Desktop/white_box/json_builders_service.py" type="text/plain"><tt>json_builders_service</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#datetime">datetime</a>
+ &#8226;   <a href="#encodings.punycode">encodings.punycode</a>
+ &#8226;   <a href="#exif_service">exif_service</a>
+ &#8226;   <a href="#geo_math_service">geo_math_service</a>
+ &#8226;   <a href="#json">json</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#utils_service">utils_service</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#image_to_json_generator">image_to_json_generator</a>
 
   </div>
 
@@ -25337,7 +25442,7 @@ imported by:
  &#8226;   <a href="#flet.core.painting">flet.core.painting</a>
  &#8226;   <a href="#flet.utils.vector">flet.utils.vector</a>
  &#8226;   <a href="#fractions">fractions</a>
- &#8226;   <a href="#image_to_json_generator">image_to_json_generator</a>
+ &#8226;   <a href="#geo_math_service">geo_math_service</a>
  &#8226;   <a href="#numpy._core._internal">numpy._core._internal</a>
  &#8226;   <a href="#numpy._core._machar">numpy._core._machar</a>
  &#8226;   <a href="#numpy._core.numeric">numpy._core.numeric</a>
@@ -25345,6 +25450,7 @@ imported by:
  &#8226;   <a href="#numpy.lib">numpy.lib</a>
  &#8226;   <a href="#numpy.lib._index_tricks_impl">numpy.lib._index_tricks_impl</a>
  &#8226;   <a href="#pygments.formatters.groff">pygments.formatters.groff</a>
+ &#8226;   <a href="#qgis_service">qgis_service</a>
  &#8226;   <a href="#random">random</a>
  &#8226;   <a href="#rich._ratio">rich._ratio</a>
  &#8226;   <a href="#rich.console">rich.console</a>
@@ -34656,6 +34762,7 @@ imported by:
  &#8226;   <a href="#ctypes.util">ctypes.util</a>
  &#8226;   <a href="#doctest">doctest</a>
  &#8226;   <a href="#email.utils">email.utils</a>
+ &#8226;   <a href="#exif_service">exif_service</a>
  &#8226;   <a href="#fileinput">fileinput</a>
  &#8226;   <a href="#flet.app">flet.app</a>
  &#8226;   <a href="#flet.flet_socket_server">flet.flet_socket_server</a>
@@ -34664,6 +34771,7 @@ imported by:
  &#8226;   <a href="#flet.version">flet.version</a>
  &#8226;   <a href="#flet_desktop">flet_desktop</a>
  &#8226;   <a href="#fnmatch">fnmatch</a>
+ &#8226;   <a href="#full_metadata_service">full_metadata_service</a>
  &#8226;   <a href="#genericpath">genericpath</a>
  &#8226;   <a href="#getopt">getopt</a>
  &#8226;   <a href="#getpass">getpass</a>
@@ -34682,6 +34790,7 @@ imported by:
  &#8226;   <a href="#importlib.resources._common">importlib.resources._common</a>
  &#8226;   <a href="#importlib.resources.abc">importlib.resources.abc</a>
  &#8226;   <a href="#inspect">inspect</a>
+ &#8226;   <a href="#json_builders_service">json_builders_service</a>
  &#8226;   <a href="#linecache">linecache</a>
  &#8226;   <a href="#locale">locale</a>
  &#8226;   <a href="#logging">logging</a>
@@ -34750,6 +34859,7 @@ imported by:
  &#8226;   <a href="#pyi_rth__tkinter.py">pyi_rth__tkinter.py</a>
  &#8226;   <a href="#pyi_rth_inspect.py">pyi_rth_inspect.py</a>
  &#8226;   <a href="#pyi_rth_localhost_fletd.py">pyi_rth_localhost_fletd.py</a>
+ &#8226;   <a href="#qgis_service">qgis_service</a>
  &#8226;   <a href="#random">random</a>
  &#8226;   <a href="#rich">rich</a>
  &#8226;   <a href="#rich.ansi">rich.ansi</a>
@@ -34760,7 +34870,6 @@ imported by:
  &#8226;   <a href="#rich.traceback">rich.traceback</a>
  &#8226;   <a href="#runpy">runpy</a>
  &#8226;   <a href="#screens.image_select">screens.image_select</a>
- &#8226;   <a href="#screens.opening">screens.opening</a>
  &#8226;   <a href="#screens.results">screens.results</a>
  &#8226;   <a href="#shlex">shlex</a>
  &#8226;   <a href="#shutil">shutil</a>
@@ -34892,12 +35001,13 @@ imported by:
     <a href="#anyio._core._fileio">anyio._core._fileio</a>
  &#8226;   <a href="#app.py">app.py</a>
  &#8226;   <a href="#click._termui_impl">click._termui_impl</a>
+ &#8226;   <a href="#consts">consts</a>
+ &#8226;   <a href="#exif_service">exif_service</a>
  &#8226;   <a href="#flet.app">flet.app</a>
  &#8226;   <a href="#flet.flet_socket_server">flet.flet_socket_server</a>
  &#8226;   <a href="#flet.version">flet.version</a>
  &#8226;   <a href="#flet_desktop">flet_desktop</a>
  &#8226;   <a href="#httpx._multipart">httpx._multipart</a>
- &#8226;   <a href="#image_to_json_generator">image_to_json_generator</a>
  &#8226;   <a href="#importlib.metadata">importlib.metadata</a>
  &#8226;   <a href="#importlib.resources._common">importlib.resources._common</a>
  &#8226;   <a href="#importlib.resources.abc">importlib.resources.abc</a>
@@ -43290,6 +43400,25 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="qgis_service"></a>
+  <a target="code" href="///C:/Users/DELL/Desktop/white_box/qgis_service.py" type="text/plain"><tt>qgis_service</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#json">json</a>
+ &#8226;   <a href="#math">math</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#shutil">shutil</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#utils.pipeline">utils.pipeline</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="queue"></a>
   <a target="code" href="///C:/Users/DELL/AppData/Local/Programs/Python/Python313/Lib/queue.py" type="text/plain"><tt>queue</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
@@ -43449,6 +43578,7 @@ imported by:
  &#8226;   <a href="#email.quoprimime">email.quoprimime</a>
  &#8226;   <a href="#email.utils">email.utils</a>
  &#8226;   <a href="#encodings.idna">encodings.idna</a>
+ &#8226;   <a href="#exif_service">exif_service</a>
  &#8226;   <a href="#exifread.core.exif_header">exifread.core.exif_header</a>
  &#8226;   <a href="#flet.core.querystring">flet.core.querystring</a>
  &#8226;   <a href="#flet.core.template_route">flet.core.template_route</a>
@@ -46021,11 +46151,10 @@ imported by:
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
+ &#8226;   <a href="#consts">consts</a>
  &#8226;   <a href="#flet">flet</a>
- &#8226;   <a href="#os">os</a>
  &#8226;   <a href="#pathlib">pathlib</a>
  &#8226;   <a href="#screens">screens</a>
- &#8226;   <a href="#sys">sys</a>
 
   </div>
   <div class="import">
@@ -46180,6 +46309,7 @@ imported by:
  &#8226;   <a href="#click.formatting">click.formatting</a>
  &#8226;   <a href="#click.shell_completion">click.shell_completion</a>
  &#8226;   <a href="#ctypes.util">ctypes.util</a>
+ &#8226;   <a href="#exif_service">exif_service</a>
  &#8226;   <a href="#flet.utils.files">flet.utils.files</a>
  &#8226;   <a href="#http.server">http.server</a>
  &#8226;   <a href="#image_to_json_generator">image_to_json_generator</a>
@@ -46189,6 +46319,7 @@ imported by:
  &#8226;   <a href="#numpy.lib._datasource">numpy.lib._datasource</a>
  &#8226;   <a href="#numpy.testing._private.utils">numpy.testing._private.utils</a>
  &#8226;   <a href="#pygments.lexers._php_builtins">pygments.lexers._php_builtins</a>
+ &#8226;   <a href="#qgis_service">qgis_service</a>
  &#8226;   <a href="#tarfile">tarfile</a>
  &#8226;   <a href="#tempfile">tempfile</a>
  &#8226;   <a href="#utils.exiftool_setup">utils.exiftool_setup</a>
@@ -46649,6 +46780,7 @@ imported by:
  &#8226;   <a href="#email._encoded_words">email._encoded_words</a>
  &#8226;   <a href="#email._header_value_parser">email._header_value_parser</a>
  &#8226;   <a href="#email.quoprimime">email.quoprimime</a>
+ &#8226;   <a href="#exif_service">exif_service</a>
  &#8226;   <a href="#flet.utils.strings">flet.utils.strings</a>
  &#8226;   <a href="#logging">logging</a>
  &#8226;   <a href="#mdurl._encode">mdurl._encode</a>
@@ -46779,11 +46911,11 @@ imported by:
  &#8226;   <a href="#click.shell_completion">click.shell_completion</a>
  &#8226;   <a href="#ctypes._aix">ctypes._aix</a>
  &#8226;   <a href="#ctypes.util">ctypes.util</a>
+ &#8226;   <a href="#exif_service">exif_service</a>
  &#8226;   <a href="#flet.utils.pip">flet.utils.pip</a>
  &#8226;   <a href="#flet.version">flet.version</a>
  &#8226;   <a href="#flet_desktop">flet_desktop</a>
  &#8226;   <a href="#http.server">http.server</a>
- &#8226;   <a href="#image_to_json_generator">image_to_json_generator</a>
  &#8226;   <a href="#multiprocessing.popen_spawn_win32">multiprocessing.popen_spawn_win32</a>
  &#8226;   <a href="#multiprocessing.util">multiprocessing.util</a>
  &#8226;   <a href="#numpy.f2py">numpy.f2py</a>
@@ -46880,6 +47012,7 @@ imported by:
  &#8226;   <a href="#colorama.initialise">colorama.initialise</a>
  &#8226;   <a href="#concurrent.futures.process">concurrent.futures.process</a>
  &#8226;   <a href="#configparser">configparser</a>
+ &#8226;   <a href="#consts">consts</a>
  &#8226;   <a href="#contextlib">contextlib</a>
  &#8226;   <a href="#ctypes">ctypes</a>
  &#8226;   <a href="#ctypes._aix">ctypes._aix</a>
@@ -47013,7 +47146,6 @@ imported by:
  &#8226;   <a href="#rich.syntax">rich.syntax</a>
  &#8226;   <a href="#rich.traceback">rich.traceback</a>
  &#8226;   <a href="#runpy">runpy</a>
- &#8226;   <a href="#screens.opening">screens.opening</a>
  &#8226;   <a href="#screens.results">screens.results</a>
  &#8226;   <a href="#selectors">selectors</a>
  &#8226;   <a href="#shlex">shlex</a>
@@ -48040,6 +48172,7 @@ imported by:
  &#8226;   <a href="#flet.pyodide_connection">flet.pyodide_connection</a>
  &#8226;   <a href="#flet.utils.classproperty">flet.utils.classproperty</a>
  &#8226;   <a href="#flet.utils.deprecated">flet.utils.deprecated</a>
+ &#8226;   <a href="#full_metadata_service">full_metadata_service</a>
  &#8226;   <a href="#functools">functools</a>
  &#8226;   <a href="#h11._connection">h11._connection</a>
  &#8226;   <a href="#h11._events">h11._events</a>
@@ -48773,6 +48906,7 @@ imports:
  &#8226;   <a href="#math">math</a>
  &#8226;   <a href="#os">os</a>
  &#8226;   <a href="#pathlib">pathlib</a>
+ &#8226;   <a href="#qgis_service">qgis_service</a>
  &#8226;   <a href="#shutil">shutil</a>
  &#8226;   <a href="#tempfile">tempfile</a>
  &#8226;   <a href="#typing">typing</a>
@@ -48782,6 +48916,18 @@ imports:
   <div class="import">
 imported by:
     <a href="#screens.image_select">screens.image_select</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="utils_service"></a>
+  <a target="code" href="///C:/Users/DELL/Desktop/white_box/utils_service.py" type="text/plain"><tt>utils_service</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imported by:
+    <a href="#exif_service">exif_service</a>
+ &#8226;   <a href="#json_builders_service">json_builders_service</a>
 
   </div>
 
@@ -49315,7 +49461,7 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#image_to_json_generator">image_to_json_generator</a>
+    <a href="#exif_service">exif_service</a>
  &#8226;   <a href="#xml.etree">xml.etree</a>
  &#8226;   <a href="#xml.etree.ElementInclude">xml.etree.ElementInclude</a>
  &#8226;   <a href="#xml.etree.ElementPath">xml.etree.ElementPath</a>
@@ -49389,7 +49535,7 @@ imports:
 imported by:
     <a href="#PIL.Image">PIL.Image</a>
  &#8226;   <a href="#_elementtree">_elementtree</a>
- &#8226;   <a href="#image_to_json_generator">image_to_json_generator</a>
+ &#8226;   <a href="#exif_service">exif_service</a>
  &#8226;   <a href="#xml.etree">xml.etree</a>
  &#8226;   <a href="#xml.etree.ElementInclude">xml.etree.ElementInclude</a>
  &#8226;   <a href="#xml.etree.cElementTree">xml.etree.cElementTree</a>
