@@ -166,7 +166,7 @@ def build_camera_data(tags):
         "fnumber": None,
     }
 
-def build_camera_position(tags, lat, lon, image_path):
+def build_camera_position(tags, lat, lon, image_path, drone_type):
     def get_altitude(tag_name, default=0.0):
         val = tags.get(tag_name)
         try:
@@ -177,7 +177,7 @@ def build_camera_position(tags, lat, lon, image_path):
             pass
         return default
 
-    los_fields = get_los_fields(image_path)
+    los_fields = get_los_fields(image_path, drone_type=drone_type)
     relative_alt = extract_relative_altitude(image_path)
 
     return {
@@ -276,7 +276,7 @@ def build_json_structure(filename, tags, lat, lon, full_path, drone_type):
     return {
         "BasicData": build_basic_data(filename, tags, full_path),
         "CameraData": build_camera_data(tags),
-        "CameraPosition": build_camera_position(tags, lat, lon, full_path),
+        "CameraPosition": build_camera_position(tags, lat, lon, full_path, drone_type),
         "PlatformData": build_platform_data(tags, drone_type, full_path),
         "Operational": build_operational_data(),
         "SensorSpecificData": build_sensor_specific_data(),

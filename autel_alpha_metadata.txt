@@ -1,0 +1,156 @@
+====================================================================
+AUTEL ALPHA XL732 - COMPLETE METADATA EXTRACTION
+====================================================================
+Image: C:\Users\galha\Downloads\ZOOM_0022.JPG
+Date: 2025-12-28
+====================================================================
+
+BASIC FILE INFO:
+- Make: Autel Robotics
+- Model: XL732
+- Software: V6.1.10.31
+- File Size: 1305 kB
+- Image Size: 3840x2160 (8.3 MP)
+- Date Taken: 2025:12:25 14:23:42
+
+CAMERA SETTINGS:
+- Exposure Time: 1/844
+- F-Number: 2.8
+- ISO: 101
+- Focal Length: 7.1 mm (35mm equivalent: 34.0 mm)
+- Digital Zoom Ratio: 3.431671128
+- Exposure Program: Program AE
+- Metering Mode: Center-weighted average
+- White Balance: Auto
+- Flash: No Flash
+
+GPS COORDINATES:
+- Latitude: 31 deg 14' 27.15" N
+- Longitude: 34 deg 47' 16.41" E
+- Altitude: 400 m Above Sea Level
+- GPS Position: 31 deg 14' 27.15" N, 34 deg 47' 16.41" E
+
+====================================================================
+CRITICAL MISSING FIELDS FOR AUTEL ALPHA:
+====================================================================
+❌ GimbalYawDegree: NOT FOUND
+❌ GimbalPitchDegree: NOT FOUND
+❌ GimbalRollDegree: NOT FOUND
+❌ RelativeAltitude: NOT FOUND
+❌ FlightYawDegree: NOT FOUND
+❌ FlightPitchDegree: NOT FOUND
+❌ FlightRollDegree: NOT FOUND
+
+====================================================================
+CONCLUSION:
+====================================================================
+Autel Alpha XL732 does NOT store gimbal orientation (LOS) data
+in the JPEG EXIF/XMP metadata. These fields are essential for
+image processing but are completely absent from Autel images.
+
+Only basic GPS coordinates and camera settings are available.
+
+====================================================================
+COMPLETE JSON METADATA:
+====================================================================
+{
+  "SourceFile": "C:/Users/galha/Downloads/ZOOM_0022.JPG",
+  "ExifToolVersion": 13.3,
+  "FileName": "ZOOM_0022.JPG",
+  "Directory": "C:/Users/galha/Downloads",
+  "FileSize": "1305 kB",
+  "ZoneIdentifier": "Exists",
+  "FileModifyDate": "2025:12:28 10:03:45+02:00",
+  "FileAccessDate": "2025:12:28 10:16:04+02:00",
+  "FileCreateDate": "2025:12:28 10:03:44+02:00",
+  "FilePermissions": "-rw-rw-rw-",
+  "FileType": "JPEG",
+  "FileTypeExtension": "jpg",
+  "MIMEType": "image/jpeg",
+  "ExifByteOrder": "Big-endian (Motorola, MM)",
+  "ImageDescription": "default",
+  "Make": "Autel Robotics",
+  "Model": "XL732",
+  "Orientation": "Horizontal (normal)",
+  "XResolution": 72,
+  "YResolution": 72,
+  "ResolutionUnit": "inches",
+  "Software": "V6.1.10.31",
+  "ModifyDate": "2025:12:25 14:23:42",
+  "ExposureTime": "1/844",
+  "FNumber": 2.8,
+  "ExposureProgram": "Program AE",
+  "ISO": 101,
+  "ExifVersion": "0221",
+  "DateTimeOriginal": "2025:12:25 14:23:42",
+  "CreateDate": "2025:12:25 14:23:42",
+  "ComponentsConfiguration": "Y, Cb, Cr, -",
+  "CompressedBitsPerPixel": 2.81640625,
+  "ShutterSpeedValue": "1/844",
+  "ApertureValue": 2.8,
+  "ExposureCompensation": 0,
+  "MaxApertureValue": 2.8,
+  "MeteringMode": "Center-weighted average",
+  "LightSource": "Unknown",
+  "Flash": "No Flash",
+  "FocalLength": "7.1 mm",
+  "ColorSpace": "sRGB",
+  "ExifImageWidth": 3840,
+  "ExifImageHeight": 2160,
+  "InteropIndex": "R98 - DCF basic file (sRGB)",
+  "InteropVersion": "0100",
+  "SensingMethod": "One-chip color area",
+  "FileSource": "Digital Camera",
+  "SceneType": "Directly photographed",
+  "CustomRendered": "Normal",
+  "ExposureMode": "Auto",
+  "WhiteBalance": "Auto",
+  "DigitalZoomRatio": 3.431671128,
+  "FocalLengthIn35mmFormat": "34 mm",
+  "SceneCaptureType": "Landscape",
+  "GainControl": "None",
+  "Contrast": "Normal",
+  "Saturation": "Normal",
+  "Sharpness": "Normal",
+  "GPSVersionID": "2.2.0.0",
+  "GPSLatitudeRef": "North",
+  "GPSLongitudeRef": "East",
+  "GPSAltitudeRef": "Above Sea Level",
+  "Compression": "JPEG (old-style)",
+  "ThumbnailOffset": 1536,
+  "ThumbnailLength": 6760,
+  "JFIFVersion": 1.01,
+  "MPFVersion": "0100",
+  "NumberOfImages": 2,
+  "MPImageFlags": "Dependent child image",
+  "MPImageFormat": "JPEG",
+  "MPImageType": "Large Thumbnail (VGA equivalent)",
+  "MPImageLength": 105601,
+  "MPImageStart": 1199655,
+  "DependentImage1EntryNumber": 0,
+  "DependentImage2EntryNumber": 0,
+  "ImageUIDList": "(Binary data 66 bytes, use -b option to extract)",
+  "TotalFrames": 1,
+  "ImageWidth": 3840,
+  "ImageHeight": 2160,
+  "EncodingProcess": "Baseline DCT, Huffman coding",
+  "BitsPerSample": 8,
+  "ColorComponents": 3,
+  "YCbCrSubSampling": "YCbCr4:2:0 (2 2)",
+  "Aperture": 2.8,
+  "ImageSize": "3840x2160",
+  "Megapixels": 8.3,
+  "ScaleFactor35efl": 4.8,
+  "ShutterSpeed": "1/844",
+  "ThumbnailImage": "(Binary data 6760 bytes, use -b option to extract)",
+  "GPSAltitude": "400 m Above Sea Level",
+  "GPSLatitude": "31 deg 14' 27.15\" N",
+  "GPSLongitude": "34 deg 47' 16.41\" E",
+  "PreviewImage": "(Binary data 105601 bytes, use -b option to extract)",
+  "CircleOfConfusion": "0.006 mm",
+  "FOV": "55.8 deg",
+  "FocalLength35efl": "7.1 mm (35 mm equivalent: 34.0 mm)",
+  "GPSPosition": "31 deg 14' 27.15\" N, 34 deg 47' 16.41\" E",
+  "HyperfocalDistance": "2.87 m",
+  "LightValue": 12.7
+}

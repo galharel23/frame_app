@@ -1,0 +1,231 @@
+====================================================================
+DJI ZH20T - COMPLETE METADATA EXTRACTION
+====================================================================
+Image: C:\Users\galha\OneDrive\Desktop\Gal\IDF\Padam\Images\Giha\DJI_20241219111547_0002_Z.JPG
+Date: 2025-12-28
+====================================================================
+
+BASIC FILE INFO:
+- Make: DJI
+- Model: ZH20T
+- Software: 07.00.01.05
+- Serial Number: 1W9DLAK001X8Q3
+- File Size: 9.5 MB
+- Image Size: 5184x2916 (15.1 MP)
+- Date Taken: 2024:12:19 11:15:47
+
+CAMERA SETTINGS:
+- Exposure Time: 1/640
+- F-Number: 3.5
+- ISO: 100
+- Focal Length: 25.4 mm (35mm equivalent: 117.0 mm)
+- Lens Info: 6.83-119.94mm f/3.5
+- Digital Zoom Ratio: 1
+- Exposure Program: Program AE
+- Metering Mode: Center-weighted average
+- White Balance: Auto
+- Light Source: Daylight
+- Flash: No Flash
+
+GPS COORDINATES:
+- Latitude: 31 deg 17' 5.50" N
+- Longitude: 34 deg 50' 10.63" E
+- Altitude: 400.5 m Above Sea Level
+- GPS Position: 31 deg 17' 5.50" N, 34 deg 50' 10.63" E
+- GPS Status: Measurement Active
+- GPS Map Datum: WGS-84
+
+====================================================================
+✅ GIMBAL/LOS ORIENTATION DATA (PRESENT IN DJI):
+====================================================================
+✅ GimbalRollDegree: +0.00
+✅ GimbalYawDegree: +114.70
+✅ GimbalPitchDegree: -18.9
+
+FLIGHT ORIENTATION:
+✅ FlightRollDegree: -2.6
+✅ FlightYawDegree: +122.20
+✅ FlightPitchDegree: -2.0
+
+ALTITUDE DATA:
+✅ AbsoluteAltitude: +400.599
+✅ RelativeAltitude: +28.787
+- AltitudeType: GpsFusionAlt
+
+FLIGHT SPEED:
+- FlightXSpeed: 0.0
+- FlightYSpeed: 0.0
+- FlightZSpeed: 0.0
+
+ADDITIONAL DJI DATA:
+- Image Source: ZoomCamera
+- GPS Status: Normal
+- CamReverse: 0
+- GimbalReverse: 0
+- LRF Status: TooClose
+- LRF Target Distance: 0.0
+
+====================================================================
+COMPARISON WITH AUTEL ALPHA:
+====================================================================
+DJI images contain ALL the critical fields needed for processing:
+✅ Gimbal orientation (Yaw/Pitch/Roll)
+✅ Flight orientation (Yaw/Pitch/Roll)
+✅ Relative altitude
+✅ Flight telemetry data
+
+These fields are COMPLETELY MISSING from Autel Alpha images.
+
+====================================================================
+COMPLETE JSON METADATA:
+====================================================================
+{
+  "SourceFile": "C:/Users/galha/OneDrive/Desktop/Gal/IDF/Padam/Images/Giha/DJI_20241219111547_0002_Z.JPG",
+  "ExifToolVersion": 13.3,
+  "FileName": "DJI_20241219111547_0002_Z.JPG",
+  "Directory": "C:/Users/galha/OneDrive/Desktop/Gal/IDF/Padam/Images/Giha",
+  "FileSize": "9.5 MB",
+  "FileModifyDate": "2024:12:19 11:15:46+02:00",
+  "FileAccessDate": "2025:12:28 10:17:27+02:00",
+  "FileCreateDate": "2025:12:04 15:11:21+02:00",
+  "FilePermissions": "-rw-rw-rw-",
+  "FileType": "JPEG",
+  "FileTypeExtension": "jpg",
+  "MIMEType": "image/jpeg",
+  "ExifByteOrder": "Little-endian (Intel, II)",
+  "ImageDescription": "default",
+  "Make": "DJI",
+  "Model": "ZH20T",
+  "Orientation": "Horizontal (normal)",
+  "XResolution": 72,
+  "YResolution": 72,
+  "ResolutionUnit": "inches",
+  "Software": "07.00.01.05",
+  "ModifyDate": "2024:12:19 11:15:47",
+  "YCbCrPositioning": "Co-sited",
+  "ExposureTime": "1/640",
+  "FNumber": 3.5,
+  "ExposureProgram": "Program AE",
+  "ISO": 100,
+  "SensitivityType": "Recommended Exposure Index",
+  "ExifVersion": "0230",
+  "DateTimeOriginal": "2024:12:19 11:15:47",
+  "CreateDate": "2024:12:19 11:15:47",
+  "ComponentsConfiguration": "Y, Cb, Cr, -",
+  "ShutterSpeedValue": "1/640",
+  "ApertureValue": 3.5,
+  "ExposureCompensation": 0,
+  "MaxApertureValue": 3.5,
+  "MeteringMode": "Center-weighted average",
+  "LightSource": "Daylight",
+  "Flash": "No Flash",
+  "FocalLength": "25.4 mm",
+  "AEDebugInfo": "(Binary data 4096 bytes, use -b option to extract)",
+  "AEHistogramInfo": "(Binary data 4096 bytes, use -b option to extract)",
+  "AELocalHistogram": "(Binary data 2048 bytes, use -b option to extract)",
+  "AELiveViewHistogramInfo": "(Binary data 4096 bytes, use -b option to extract)",
+  "AELiveViewLocalHistogram": "(Binary data 2048 bytes, use -b option to extract)",
+  "AWBDebugInfo": "(Binary data 4096 bytes, use -b option to extract)",
+  "AFDebugInfo": "(Binary data 256 bytes, use -b option to extract)",
+  "Histogram": "(Binary data 1024 bytes, use -b option to extract)",
+  "Xidiri": "(Binary data 512 bytes, use -b option to extract)",
+  "GimbalDegree": "1147,-189,0",
+  "FlightDegree": "1222,-20,-26",
+  "ADJDebugInfo": "(Binary data 1024 bytes, use -b option to extract)",
+  "SensorID": "1W9DLAK001X8Q3",
+  "FlightSpeed": "0,0,0",
+  "HyperlapsDebugInfo": "(Binary data 8 bytes, use -b option to extract)",
+  "FlashpixVersion": "0100",
+  "ColorSpace": "sRGB",
+  "ExifImageWidth": 5184,
+  "ExifImageHeight": 2916,
+  "InteropIndex": "R98 - DCF basic file (sRGB)",
+  "InteropVersion": "0100",
+  "FileSource": "Digital Camera",
+  "SceneType": "Directly photographed",
+  "ExposureMode": "Auto",
+  "WhiteBalance": "Auto",
+  "DigitalZoomRatio": 1,
+  "FocalLengthIn35mmFormat": "117 mm",
+  "SceneCaptureType": "Standard",
+  "GainControl": "None",
+  "Contrast": "Normal",
+  "Saturation": "Normal",
+  "Sharpness": "Normal",
+  "DeviceSettingDescription": "(Binary data 4 bytes, use -b option to extract)",
+  "SerialNumber": "1W9DLAK001X8Q3",
+  "LensInfo": "6.83-119.94mm f/3.5",
+  "GPSVersionID": "2.3.0.0",
+  "GPSLatitudeRef": "North",
+  "GPSLongitudeRef": "East",
+  "GPSAltitudeRef": "Above Sea Level",
+  "GPSStatus": "Measurement Active",
+  "GPSMapDatum": "WGS-84",
+  "XPComment": "0.9.142",
+  "XPKeywords": "single",
+  "Compression": "JPEG",
+  "ThumbnailOffset": 24974,
+  "ThumbnailLength": 9200,
+  "About": "DJI Meta Data",
+  "Format": "image/jpg",
+  "ImageSource": "ZoomCamera",
+  "GpsStatus": "Normal",
+  "AltitudeType": "GpsFusionAlt",
+  "AbsoluteAltitude": "+400.599",
+  "RelativeAltitude": "+28.787",
+  "GimbalRollDegree": "+0.00",
+  "GimbalYawDegree": "+114.70",
+  "GimbalPitchDegree": -18.9,
+  "FlightRollDegree": -2.6,
+  "FlightYawDegree": "+122.20",
+  "FlightPitchDegree": -2.0,
+  "FlightXSpeed": 0.0,
+  "FlightYSpeed": 0.0,
+  "FlightZSpeed": 0.0,
+  "CamReverse": 0,
+  "GimbalReverse": 0,
+  "SelfData": "",
+  "LRFStatus": "TooClose",
+  "LRFTargetDistance": 0.0,
+  "LRFTargetLon": 0.0,
+  "LRFTargetLat": 0.0,
+  "LRFTargetAlt": 0.0,
+  "LRFTargetAbsAlt": 0.0,
+  "Version": 7.0,
+  "HasSettings": false,
+  "HasCrop": false,
+  "AlreadyApplied": false,
+  "MPFVersion": "0100",
+  "NumberOfImages": 2,
+  "MPImageFlags": "Dependent child image",
+  "MPImageFormat": "JPEG",
+  "MPImageType": "Large Thumbnail (VGA equivalent)",
+  "MPImageLength": 719267,
+  "MPImageStart": 8829818,
+  "DependentImage1EntryNumber": 0,
+  "DependentImage2EntryNumber": 0,
+  "ImageUIDList": "(Binary data 66 bytes, use -b option to extract)",
+  "TotalFrames": 1,
+  "ImageWidth": 5184,
+  "ImageHeight": 2916,
+  "EncodingProcess": "Baseline DCT, Huffman coding",
+  "BitsPerSample": 8,
+  "ColorComponents": 3,
+  "YCbCrSubSampling": "YCbCr4:2:0 (2 2)",
+  "Aperture": 3.5,
+  "ImageSize": "5184x2916",
+  "Megapixels": 15.1,
+  "ScaleFactor35efl": 4.6,
+  "ShutterSpeed": "1/640",
+  "ThumbnailImage": "(Binary data 9200 bytes, use -b option to extract)",
+  "GPSAltitude": "400.5 m Above Sea Level",
+  "GPSLatitude": "31 deg 17' 5.50\" N",
+  "GPSLongitude": "34 deg 50' 10.63\" E",
+  "PreviewImage": "(Binary data 719267 bytes, use -b option to extract)",
+  "CircleOfConfusion": "0.007 mm",
+  "FOV": "17.5 deg",
+  "FocalLength35efl": "25.4 mm (35 mm equivalent: 117.0 mm)",
+  "GPSPosition": "31 deg 17' 5.50\" N, 34 deg 50' 10.63\" E",
+  "HyperfocalDistance": "28.25 m",
+  "LightValue": 12.9
+}

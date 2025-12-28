@@ -105,7 +105,7 @@ def _process_single_image(
         lat, lon = extract_gps_info_from_tags(tags)
 
         # LOS + relative altitude (from ExifTool / XMP)
-        los_fields = get_los_fields(full_path)
+        los_fields = get_los_fields(full_path, drone_type=drone_type)
         relative_alt = extract_relative_altitude(full_path)
 
         has_los_fields = (

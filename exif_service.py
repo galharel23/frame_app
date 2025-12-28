@@ -137,29 +137,92 @@ def extract_xmp_metadata(image_path):
         print(f"Error extracting XMP metadata: {str(e)}")
         return None
 
-def get_los_fields(image_path):
+def get_los_fields(image_path, drone_type=None):
     """
     מחלץ זוויות/כיוונים של הגימבל באמצעות ExifTool.
     מחזיר always dict עם מפתחות losAzimuth/losPitch/losRoll.
+    
+    Args:
+        image_path: Path to the image file
+        drone_type: Type of drone (e.g., "Autel Alpha", "DJI M350 RTK", etc.)
     """
     try:
-        cp = run_exiftool(
-            [
-                "-n",
-                "-json",
-                "-GimbalYawDegree",
-                "-GimbalPitchDegree",
-                "-GimbalRollDegree",
-                image_path,
-            ]
-        )
-        data = json.loads(cp.stdout)[0] if cp.stdout else {}
+        # Determine which EXIF fields to query based on drone type
+        # Autel drones include: Autel Alpha, EVO Max series
+        is_autel = drone_type and any(keyword in drone_type.lower() for keyword in ['autel', 'evo'])
+        
+        if is_autel:
+            # Autel drones use different field names
+            # EVO Max and Autel Alpha use: Yaw, Pitch, Roll (in XMP)
+            cp = run_exiftool(
+                [
+                    "-n",
+                    "-json",
+                    "-XMP:Yaw",
+                    "-XMP:Pitch",
+                    "-XMP:Roll",
+                    "-Yaw",
+                    "-Pitch",
+                    "-Roll",
+                    "-CameraYaw",
+                    "-CameraPitch",
+                    "-CameraRoll",
+                    "-FlightYawDegree",
+                    "-FlightPitchDegree",
+                    "-FlightRollDegree",
+                    image_path,
+                ]
+            )
+            data = json.loads(cp.stdout)[0] if cp.stdout else {}
+            
+            # Try multiple field name variations for Autel
+            # Priority: XMP fields (Yaw, Pitch, Roll) -> Camera fields -> Flight fields
+            yaw = (
+                data.get("Yaw") or 
+                data.get("XMP:Yaw") or
+                data.get("CameraYaw") or 
+                data.get("FlightYawDegree") or
+                0.0
+            )
+            pitch = (
+                data.get("Pitch") or 
+                data.get("XMP:Pitch") or
+                data.get("CameraPitch") or 
+                data.get("FlightPitchDegree") or
+                0.0
+            )
+            roll = (
+                data.get("Roll") or 
+                data.get("XMP:Roll") or
+                data.get("CameraRoll") or 
+                data.get("FlightRollDegree") or
+                0.0
+            )
+            
+            return {
+                "losAzimuth": to_float_rounded(yaw, digits=4),
+                "losPitch": to_float_rounded(pitch, digits=4),
+                "losRoll": to_float_rounded(roll, digits=4),
+            }
+        else:
+            # DJI and other drones use standard gimbal fields
+            cp = run_exiftool(
+                [
+                    "-n",
+                    "-json",
+                    "-GimbalYawDegree",
+                    "-GimbalPitchDegree",
+                    "-GimbalRollDegree",
+                    image_path,
+                ]
+            )
+            data = json.loads(cp.stdout)[0] if cp.stdout else {}
 
-        return {
-            "losAzimuth": to_float_rounded(data.get("GimbalYawDegree"), digits = 4),
-            "losPitch": to_float_rounded(data.get("GimbalPitchDegree"), digits = 4),
-            "losRoll": to_float_rounded(data.get("GimbalRollDegree"), digits = 4),
-        }
+            return {
+                "losAzimuth": to_float_rounded(data.get("GimbalYawDegree"), digits=4),
+                "losPitch": to_float_rounded(data.get("GimbalPitchDegree"), digits=4),
+                "losRoll": to_float_rounded(data.get("GimbalRollDegree"), digits=4),
+            }
     except FileNotFoundError as e:
         print(f"Warning: ExifTool not found: {e}")
         return {"losAzimuth": 0.0, "losPitch": 0.0, "losRoll": 0.0}
@@ -171,6 +234,10 @@ def get_los_fields(image_path):
         return {"losAzimuth": 0.0, "losPitch": 0.0, "losRoll": 0.0}
 
 def extract_relative_altitude(image_path):
+    """
+    Extract relative altitude from XMP metadata.
+    Supports both DJI (RelativeAltitude) and Autel (AboveGroundAltitude) formats.
+    """
     xmp_data = extract_xmp_metadata(image_path)
     if xmp_data is None:
         return 0.0
@@ -178,10 +245,22 @@ def extract_relative_altitude(image_path):
     desc = xmp_root.find(".//rdf:Description", ns)
     if desc is None:
         return 0.0
+    
+    # Try DJI RelativeAltitude first
     val = desc.attrib.get(f"{{{ns['drone-dji']}}}RelativeAltitude")
-    if val is None:
-        return 0.0
-    try:
-        return float(val.lstrip("+"))
-    except ValueError:
-        return 0.0
+    if val is not None:
+        try:
+            return float(val.lstrip("+"))
+        except ValueError:
+            pass
+    
+    # Try Autel AboveGroundAltitude
+    # Check all attributes for AboveGroundAltitude (namespace might vary)
+    for attr_name, attr_val in desc.attrib.items():
+        if 'AboveGroundAltitude' in attr_name:
+            try:
+                return float(attr_val)
+            except ValueError:
+                pass
+    
+    return 0.0
