@@ -31,7 +31,7 @@ def _ltr(s: str) -> str:
     return f"{_LRM}{s}{_LRM}"
 
 
-def build_image_select_screen(page: ft.Page):
+def build_image_select_screen(page: ft.Page, on_back=None):
     # --- Global layout direction ---
     page.rtl = True
     page.appbar = None
@@ -265,11 +265,19 @@ def build_image_select_screen(page: ft.Page):
 
         def back_to_select(_):
             page.controls.clear()
-            page.add(build_image_select_screen(page))
+            page.add(build_image_select_screen(page, on_back=on_back))
             page.update()
 
         page.controls.clear()
-        page.add(build_results_screen(page, result, on_again=back_to_select))
+        from screens.results import build_results_screen
+        # Wrap async on_back if needed
+        def on_media_type_btn(e=None):
+            if on_back:
+                if asyncio.iscoroutinefunction(on_back):
+                    asyncio.create_task(on_back(e))
+                else:
+                    on_back(e)
+        page.add(build_results_screen(page, result, on_again=back_to_select, on_media_type=on_media_type_btn))
         page.update()
 
     submit_btn = ft.ElevatedButton(
@@ -301,23 +309,17 @@ def build_image_select_screen(page: ft.Page):
         page.update()
 
     # ---- Back button (top-right) ----
-    def back_to_opening(_):
-        page.controls.clear()
-        page.add(
-            build_opening_screen(
-                on_start=lambda __: (
-                    page.controls.clear(),
-                    page.add(build_image_select_screen(page)),
-                    page.update(),
-                )
-            )
-        )
-        page.update()
+    def back_to_media_type(_):
+        if on_back:
+            on_back(_)
+        else:
+            page.controls.clear()
+            page.update()
 
     back_btn = ft.TextButton(
-        "חזרה למסך הראשי",
+        "חזרה לבחירת סוג מדיה",
         icon=ft.Icons.ARROW_BACK,
-        on_click=back_to_opening,
+        on_click=back_to_media_type,
         style=ft.ButtonStyle(
             padding=ft.Padding(12, 8, 12, 8),
             shape=ft.RoundedRectangleBorder(radius=8),

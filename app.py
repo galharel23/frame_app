@@ -37,7 +37,9 @@ def main(page: ft.Page):
     page.vertical_alignment = "center"
     page.rtl = True
 
-    # תצוגה בזמן הכנה
+    from screens.media_type import build_media_type_screen
+    from screens.video_processing import build_video_processing_screen
+
     setup_dlg = ft.AlertDialog(
         modal=True,
         content=ft.Column(
@@ -49,39 +51,44 @@ def main(page: ft.Page):
         ),
     )
 
-    # --------------------------
-    # 🔹 מעבר למסך בחירת תמונה
-    # --------------------------
-    async def go_to_select(e):
+    async def go_to_select(e=None):
         page.dialog = setup_dlg
         setup_dlg.open = True
         page.update()
-
         try:
-            # ⚠️ חשוב: משתמשים ב-resource_path!
             base_dir = Path(resource_path(""))
             ok, msg = await asyncio.to_thread(ensure_exiftool_on_path, base_dir)
-
         except Exception as err:
             ok, msg = False, f"שגיאה בהכנת ExifTool: {err}"
-
         setup_dlg.open = False
         page.update()
-
-        # הצגת משוב
         page.snack_bar = ft.SnackBar(ft.Text(msg))
         page.snack_bar.open = True
         page.update()
-
-        # מעבר למסך הבא
         page.controls.clear()
-        page.add(build_image_select_screen(page))
+        page.add(build_image_select_screen(page, on_back=go_to_media_type))
         page.update()
 
-    # --------------------------
-    # 🔹 מסך פתיחה
-    # --------------------------
-    page.add(build_opening_screen(on_start=go_to_select))
+    def go_to_video_processing(e=None):
+        page.controls.clear()
+        page.add(build_video_processing_screen())
+        page.update()
+
+    def go_to_media_type_sync(e=None):
+        # Wrapper for async go_to_media_type
+        asyncio.create_task(go_to_media_type(e))
+
+    async def go_to_media_type(e=None):
+        page.controls.clear()
+        page.add(build_media_type_screen(on_photos=go_to_select, on_videos=go_to_video_processing))
+        page.update()
+
+    def go_to_media_type(e=None):
+        page.controls.clear()
+        page.add(build_media_type_screen(on_photos=go_to_select, on_videos=go_to_video_processing))
+        page.update()
+
+    page.add(build_opening_screen(on_start=go_to_media_type_sync))
 
 # ---------------------------------------------------------
 # 🔸 הרצה כאפליקציה

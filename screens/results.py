@@ -49,7 +49,7 @@ def _status_chip(ok: bool):
     )
 
 
-def build_results_screen(page: ft.Page, processing_result: Dict, on_again):
+def build_results_screen(page: ft.Page, processing_result: Dict, on_again, on_media_type=None):
     """
     processing_result:
       {
@@ -171,6 +171,7 @@ def build_results_screen(page: ft.Page, processing_result: Dict, on_again):
         ],
     )
 
+
     again_btn = ft.ElevatedButton(
         text="הלבנה נוספת",
         icon=ft.Icons.AUTORENEW,  # חץ מעגלי
@@ -180,17 +181,32 @@ def build_results_screen(page: ft.Page, processing_result: Dict, on_again):
         style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10)),
     )
 
+    media_type_btn = None
+    if on_media_type:
+        media_type_btn = ft.TextButton(
+            "לחץ לבחירת סוג מדיה",
+            icon=ft.Icons.ARROW_BACK,
+            on_click=on_media_type,
+            style=ft.ButtonStyle(
+                padding=ft.Padding(12, 8, 12, 8),
+                shape=ft.RoundedRectangleBorder(radius=8),
+            ),
+        )
+
+    controls_list = [
+        header,
+        ft.Container(padding=8, content=summary_bar),
+        ft.Divider(opacity=0.1),
+        ft.Text("סטטוס לפי תמונה:", size=14, color="#e0e0e0"),
+        ft.ListView(controls=list_tiles, height=420, spacing=10, auto_scroll=False),
+        ft.Row([again_btn], alignment=ft.MainAxisAlignment.CENTER),
+    ]
+    if media_type_btn:
+        controls_list.append(ft.Row([media_type_btn], alignment=ft.MainAxisAlignment.CENTER))
     body = ft.Column(
         spacing=16,
         width=820,
-        controls=[
-            header,
-            ft.Container(padding=8, content=summary_bar),
-            ft.Divider(opacity=0.1),
-            ft.Text("סטטוס לפי תמונה:", size=14, color="#e0e0e0"),
-            ft.ListView(controls=list_tiles, height=420, spacing=10, auto_scroll=False),
-            ft.Row([again_btn], alignment=ft.MainAxisAlignment.CENTER),
-        ],
+        controls=controls_list,
     )
 
     card = ft.Card(content=ft.Container(padding=20, content=body))
