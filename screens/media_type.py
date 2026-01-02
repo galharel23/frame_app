@@ -9,7 +9,7 @@ def build_media_type_screen(on_photos, on_videos):
         text="תמונות",
         on_click=on_photos,
         style=ft.ButtonStyle(
-            bgcolor="#4caf50",
+            bgcolor="#6b7280",
             color="#ffffff",
             padding=ft.Padding(44, 32, 44, 32),
             text_style=ft.TextStyle(size=26, weight=ft.FontWeight.BOLD),
@@ -20,7 +20,7 @@ def build_media_type_screen(on_photos, on_videos):
         text="וידאו",
         on_click=on_videos,
         style=ft.ButtonStyle(
-            bgcolor="#2196f3",
+            bgcolor="#3b82f6",
             color="#ffffff",
             padding=ft.Padding(44, 32, 44, 32),
             text_style=ft.TextStyle(size=26, weight=ft.FontWeight.BOLD),
