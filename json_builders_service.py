@@ -1,6 +1,7 @@
 from encodings.punycode import digits
 import os
 import json
+import re
 from datetime import datetime, timezone
 
 from exif_service import (
@@ -10,7 +11,11 @@ from exif_service import (
     run_exiftool,
 )
 
-from utils_service import get_float
+from utils_service import (
+    get_float,
+    to_float_rounded,
+    to_float,
+)
 
 from geo_math_service import (
     calculate_resolution,
@@ -18,116 +23,114 @@ from geo_math_service import (
     normalize_pitch,
 )
 
-from utils_service import (
-     get_float, 
-     to_float_rounded,
-     to_float,
-    )
 
+# ------------------------------------------------------------
+# Sensor classification by FILE NAME (_T / _Z / _W)
+# ------------------------------------------------------------
+
+def classify_sensor_type_from_name(filename: str) -> str:
+    """
+    Classify sensor type by filename suffix:
+      *_T -> IR
+      *_Z -> EO
+      *_W -> VIS
+    Default -> VIS
+    """
+    base = os.path.splitext(os.path.basename(filename))[0]
+    match = re.search(r"_([A-Za-z])$", base)
+
+    if not match:
+        return "VIS"
+
+    suffix = match.group(1).upper()
+
+    if suffix == "T":
+        return "IR"
+    if suffix == "Z":
+        return "EO"
+    if suffix == "W":
+        return "VIS"
+
+    return "VIS"
+
+
+# ------------------------------------------------------------
+# Imaging time (UTC)
+# ------------------------------------------------------------
 
 def _build_imaging_time_utc(tags) -> str:
-    """Return imaging time as a UTC ISO-8601 string.
-
-    Preference order:
-    1. GPS date/time tags (which are defined as UTC in EXIF):
-       - "GPS GPSDate" or "GPS GPSDateStamp" (e.g. "2024:12:19")
-       - "GPS GPSTimeStamp" (three rational values: H, M, S)
-    2. Fallback to "EXIF DateTimeOriginal" assuming it is already UTC.
-    """
-    # 1) Try GPS date/time (UTC by definition)
     try:
         gps_date_tag = tags.get("GPS GPSDate") or tags.get("GPS GPSDateStamp")
         gps_time_tag = tags.get("GPS GPSTimeStamp")
 
         if gps_date_tag and gps_time_tag and hasattr(gps_time_tag, "values"):
-            date_str = str(gps_date_tag)  # "YYYY:MM:DD"
-            parts = date_str.split(":")
-            if len(parts) == 3:
-                year, month, day = map(int, parts)
+            year, month, day = map(int, str(gps_date_tag).split(":"))
+            vals = gps_time_tag.values
 
-                vals = gps_time_tag.values
+            def _r(r): return float(r.num) / float(r.den)
 
-                def _ratio_to_float(r):
-                    return float(r.num) / float(r.den)
+            hour = int(_r(vals[0]))
+            minute = int(_r(vals[1]))
+            sec = _r(vals[2])
+            second = int(sec)
+            micro = int(round((sec - second) * 1_000_000))
 
-                hour = int(_ratio_to_float(vals[0]))
-                minute = int(_ratio_to_float(vals[1]))
-                sec_float = _ratio_to_float(vals[2])
-                second = int(sec_float)
-                micro = int(round((sec_float - second) * 1_000_000))
+            dt = datetime(
+                year, month, day,
+                hour, minute, second, micro,
+                tzinfo=timezone.utc
+            )
+            return dt.isoformat().replace("+00:00", "Z")
+    except Exception:
+        pass
 
-                dt = datetime(
-                    year,
-                    month,
-                    day,
-                    hour,
-                    minute,
-                    second,
-                    micro,
-                    tzinfo=timezone.utc,
-                )
-                # Trim trailing zeros in microseconds if not needed
-                iso = dt.isoformat().replace("+00:00", "Z")
-                return iso
-    except Exception as e:
-        print(f"Warning: Could not build imaging time from GPS tags: {e}")
-
-    # 2) Fallback: use DateTimeOriginal and mark it as UTC (best-effort)
     try:
-        imaging_time_raw = str(tags.get("EXIF DateTimeOriginal", ""))
-        if imaging_time_raw:
-            dt = datetime.strptime(imaging_time_raw, "%Y:%m:%d %H:%M:%S")
-            dt = dt.replace(tzinfo=timezone.utc)
-            return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-    except Exception as e:
-        print(f"Warning: Could not format imaging time from EXIF DateTimeOriginal: {e}")
+        raw = str(tags.get("EXIF DateTimeOriginal", ""))
+        if raw:
+            dt = datetime.strptime(raw, "%Y:%m:%d %H:%M:%S")
+            return dt.replace(tzinfo=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    except Exception:
+        pass
 
     return ""
 
 
-# Build each sector
+# ------------------------------------------------------------
+# Build sections
+# ------------------------------------------------------------
 
 def build_basic_data(filename, tags, full_path):
     width = int(str(tags.get("EXIF ExifImageWidth", "0")))
     height = int(str(tags.get("EXIF ExifImageLength", "0")))
 
     imaging_time = _build_imaging_time_utc(tags)
+    sensor_type = classify_sensor_type_from_name(filename)
 
     try:
-        print(f"Attempting to calculate resolution for: {filename}")
-        print(f"Image dimensions: {width}x{height}")
-
         xmp_data = extract_xmp_metadata(full_path)
         if xmp_data is not None:
-            print("Found XMP metadata section")
             xmp_root, ns = xmp_data
             desc = xmp_root.find(".//rdf:Description", ns)
             if desc is not None:
-                print("Found XMP Description")
                 val = desc.attrib.get(f"{{{ns['drone-dji']}}}RelativeAltitude")
                 if val is not None:
-                    print(f"Found RelativeAltitude: {val}")
                     altitude = float(val.lstrip("+"))
-                    print(f"Using altitude: {altitude} meters")
-                    resolution = calculate_resolution(width, height, 82.9, 52.5, altitude)
-                    print(f"Calculated resolution: {resolution} meters/pixel")
+                    resolution = calculate_resolution(
+                        width, height, 82.9, 52.5, altitude
+                    )
                 else:
-                    print("RelativeAltitude not found in XMP")
                     resolution = 0.0
             else:
-                print("XMP Description not found")
                 resolution = 0.0
         else:
-            print("XMP metadata section not found")
             resolution = 0.0
-    except Exception as e:
-        print(f"Error calculating resolution: {str(e)}")
+    except Exception:
         resolution = 0.0
 
     return {
         "id": os.path.splitext(filename)[0],
         "sensorName": "Modash",
-        "sensorType": "VIS",
+        "sensorType": sensor_type,   # ✅ IR / EO / VIS לפי השם
         "imageFile": filename,
         "imagingTime": imaging_time,
         "prevImagingTime": None,
@@ -137,18 +140,21 @@ def build_basic_data(filename, tags, full_path):
         "resolution": resolution,
     }
 
+
 def build_camera_data(tags):
     width = int(str(tags.get("EXIF ExifImageWidth", "0")))
     height = int(str(tags.get("EXIF ExifImageLength", "0")))
+
     try:
         focal_35mm = float(str(tags.get("EXIF FocalLengthIn35mmFilm", "0")))
         fx = (focal_35mm / 36.0) * width
         fy = (focal_35mm / 24.0) * height
     except Exception:
         fx, fy = 0.0, 0.0
+
     return {
-        "focalLengthInPixelsX": round(fx,4),
-        "focalLengthInPixelsY": round(fy,4),
+        "focalLengthInPixelsX": round(fx, 4),
+        "focalLengthInPixelsY": round(fy, 4),
         "foVX": 82.9,
         "foVY": 52.5,
         "cx": width / 2.0,
@@ -166,83 +172,49 @@ def build_camera_data(tags):
         "fnumber": None,
     }
 
-def build_camera_position(tags, lat, lon, image_path, drone_type):
-    def get_altitude(tag_name, default=0.0):
-        val = tags.get(tag_name)
-        try:
-            if val and hasattr(val, "values"):
-                ratio = val.values[0]
-                return ratio.num / ratio.den
-        except Exception:
-            pass
-        return default
 
-    los_fields = get_los_fields(image_path, drone_type=drone_type)
+def build_camera_position(tags, lat, lon, image_path):
+    los_fields = get_los_fields(image_path)
     relative_alt = extract_relative_altitude(image_path)
 
     return {
         "gpsLatitude": lat,
         "gpsLongitude": lon,
-        "gpsAltitude": get_altitude("GPS GPSAltitude", 0.0),
+        "gpsAltitude": get_float("GPS GPSAltitude", tags, 0.0),
         "relativeAltitude": relative_alt,
-        "losAzimuth": round(normalize_azimuth(los_fields["losAzimuth"]),4),
-        "losPitch": round(normalize_pitch(los_fields["losPitch"]),4),
-        "losRoll": round(los_fields["losRoll"],4),
+        "losAzimuth": round(normalize_azimuth(los_fields["losAzimuth"]), 4),
+        "losPitch": round(normalize_pitch(los_fields["losPitch"]), 4),
+        "losRoll": round(los_fields["losRoll"], 4),
     }
 
+
 def build_platform_data(tags, drone_type, image_path):
-    """
-    ממלא 4 שדות מ-ExifTool:
-      - mslAltitude: GPSAltitude (כש GPSAltitudeRef==0) אחרת AbsoluteAltitude
-      - platformYaw/Pitch/Roll: FlightYaw/Pitch/RollDegree
-    נשמרת הלוגיקה שלך ל-trueCourse וה-groundSpeed.
-    """
     true_course = get_float("GPS GPSTrack", tags, 0.0)
 
     msl_alt = get_float("GPS GPSAltitude", tags, 0.0)
-    yaw = 0.0
-    pitch = 0.0
-    roll = 0.0
+    yaw = pitch = roll = 0.0
 
     try:
-        cp = run_exiftool(
-            [
-                "-n",
-                "-json",
-                "-GPSAltitude",
-                "-GPSAltitudeRef",
-                "-AbsoluteAltitude",
-                "-FlightYawDegree",
-                "-FlightPitchDegree",
-                "-FlightRollDegree",
-                image_path,
-            ]
-        )
+        cp = run_exiftool([
+            "-n", "-json",
+            "-GPSAltitude", "-GPSAltitudeRef", "-AbsoluteAltitude",
+            "-FlightYawDegree", "-FlightPitchDegree", "-FlightRollDegree",
+            image_path,
+        ])
         data = json.loads(cp.stdout)[0] if cp.stdout else {}
-
-
-        
 
         gps_alt = to_float(data.get("GPSAltitude"))
         gps_alt_ref = to_float(data.get("GPSAltitudeRef"))
         abs_alt = to_float(data.get("AbsoluteAltitude"))
-        
-        yaw_exif = to_float_rounded(data.get("FlightYawDegree"), digits=4)
-        pitch_exif = to_float_rounded(data.get("FlightPitchDegree"), digits=4)
-        roll_exif = to_float_rounded(data.get("FlightRollDegree"), digits=4)
 
         if gps_alt is not None and (gps_alt_ref is None or int(gps_alt_ref) == 0):
             msl_alt = gps_alt
         elif abs_alt is not None:
             msl_alt = abs_alt
 
-        if yaw_exif is not None:
-            yaw = normalize_azimuth(yaw_exif)
-        if pitch_exif is not None:
-            pitch = normalize_pitch(pitch_exif)
-        if roll_exif is not None:
-            roll = roll_exif
-
+        yaw = normalize_azimuth(to_float_rounded(data.get("FlightYawDegree"), 4) or 0.0)
+        pitch = normalize_pitch(to_float_rounded(data.get("FlightPitchDegree"), 4) or 0.0)
+        roll = to_float_rounded(data.get("FlightRollDegree"), 4) or 0.0
     except Exception:
         pass
 
@@ -257,11 +229,13 @@ def build_platform_data(tags, drone_type, image_path):
         "platformRoll": roll,
     }
 
+
 def build_operational_data():
     return {
         "missionNumber": None,
         "operationUnit": "Padam",
     }
+
 
 def build_sensor_specific_data():
     return {
@@ -270,13 +244,16 @@ def build_sensor_specific_data():
         "groundRef": None,
     }
 
-# Build full Skeleton
+
+# ------------------------------------------------------------
+# Final JSON
+# ------------------------------------------------------------
 
 def build_json_structure(filename, tags, lat, lon, full_path, drone_type):
     return {
         "BasicData": build_basic_data(filename, tags, full_path),
         "CameraData": build_camera_data(tags),
-        "CameraPosition": build_camera_position(tags, lat, lon, full_path, drone_type),
+        "CameraPosition": build_camera_position(tags, lat, lon, full_path),
         "PlatformData": build_platform_data(tags, drone_type, full_path),
         "Operational": build_operational_data(),
         "SensorSpecificData": build_sensor_specific_data(),
