@@ -4,8 +4,12 @@ Processes DJI SRT subtitle files and extracts GPS/telemetry data to CSV format.
 """
 import re
 from pathlib import Path
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Tuple
 import csv
+import shutil
+import tempfile
+import os
+from datetime import datetime
 
 # Regex patterns
 TIME_RE = re.compile(r"(\d+):(\d+):(\d+),(\d+)")
@@ -153,9 +157,10 @@ def export_to_csv(frames: List[VideoFrameMetadata], output_path: Path) -> None:
 def convert_srt_to_csv(srt_path: Path) -> tuple[bool, str, Optional[Path]]:
     """
     Convert SRT file to CSV.
+    Creates folder structure: whitening_YYYYMMDD_HHMMSS/video_name/
     
     Returns:
-        (success, message, output_path)
+        (success, message, output_folder_path)
     """
     try:
         srt_path = Path(srt_path)
@@ -167,17 +172,31 @@ def convert_srt_to_csv(srt_path: Path) -> tuple[bool, str, Optional[Path]]:
         if srt_path.suffix.upper() != ".SRT":
             return False, f"File is not an SRT file: {srt_path.name}", None
         
+        # Create whitening session folder
+        session_name = datetime.now().strftime("%Y%m%d_%H%M%S")
+        session_dir = os.path.join(tempfile.gettempdir(), f"whitening_{session_name}")
+        os.makedirs(session_dir, exist_ok=True)
+        
+        # Create subfolder for this video (using video name without extension)
+        video_folder_name = srt_path.stem
+        video_folder = os.path.join(session_dir, video_folder_name)
+        os.makedirs(video_folder, exist_ok=True)
+        
+        # Copy original SRT file to output folder
+        output_srt = os.path.join(video_folder, srt_path.name)
+        shutil.copy2(str(srt_path), output_srt)
+        
         # Process SRT file
         frames = process_srt(srt_path)
         
         if not frames:
             return False, "No GPS data found in SRT file", None
         
-        # Export to CSV in same directory
-        output_path = srt_path.with_suffix(".csv")
-        export_to_csv(frames, output_path)
+        # Export to CSV in the video folder
+        output_csv = os.path.join(video_folder, srt_path.with_suffix(".csv").name)
+        export_to_csv(frames, Path(output_csv))
         
-        return True, f"Successfully converted {len(frames)} frames", output_path
+        return True, f"Successfully converted {len(frames)} frames", Path(video_folder)
         
     except Exception as e:
         return False, f"Error processing SRT file: {str(e)}", None

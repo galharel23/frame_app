@@ -127,14 +127,20 @@ def build_video_processing_screen(page: ft.Page, on_back=None):
 
         try:
             results = []
+            session_folder = None
             
             for srt_file in selected_files:
-                success, message, output_path = convert_srt_to_csv(srt_file)
+                success, message, output_folder = convert_srt_to_csv(srt_file)
+                
+                # Capture the session folder from first conversion
+                if output_folder and not session_folder:
+                    session_folder = str(output_folder.parent)
+                
                 results.append({
                     "file": pathlib.Path(srt_file).name,
                     "status": "success" if success else "error",
                     "message": message,
-                    "output_path": output_path
+                    "output_folder": str(output_folder) if output_folder else None
                 })
             
             progress_dlg.open = False
@@ -142,7 +148,7 @@ def build_video_processing_screen(page: ft.Page, on_back=None):
             
             # Navigate to results screen
             page.clean()
-            page.add(build_video_results_screen(page, results, on_back=on_back))
+            page.add(build_video_results_screen(page, results, session_folder=session_folder, on_back=on_back))
             page.update()
 
         except Exception as err:
@@ -226,7 +232,7 @@ def build_video_processing_screen(page: ft.Page, on_back=None):
     )
 
 
-def build_video_results_screen(page: ft.Page, results: list, on_back=None):
+def build_video_results_screen(page: ft.Page, results: list, session_folder: str = None, on_back=None):
     """
     Display results of SRT to CSV conversion.
     """
@@ -274,20 +280,16 @@ def build_video_results_screen(page: ft.Page, results: list, on_back=None):
         rows=table_rows,
     )
 
-    # Open CSV button (if any successful conversions)
-    successful = [r for r in results if r["status"] == "success"]
-    
+    # Open folder button
     def open_folder_click(e):
-        if successful:
-            folder = pathlib.Path(successful[0]["output_path"]).parent
-            if folder.exists():
-                import subprocess
-                subprocess.Popen(f'explorer /select,"{successful[0]["output_path"]}"')
+        if session_folder and pathlib.Path(session_folder).exists():
+            import subprocess
+            subprocess.Popen(f'explorer "{session_folder}"')
 
     open_btn = ft.FilledButton(
-        f"פתח קטלוג ({len(successful)} CSV)",
+        "פתח תיקייה",
         on_click=open_folder_click,
-        disabled=len(successful) == 0,
+        disabled=not session_folder or not pathlib.Path(session_folder).exists(),
     )
 
     # "Additional Whitening" button
