@@ -13,9 +13,9 @@ SENTINEL_NAME = ".exiftool_path_set"
 
 def _find_exiftool_dir(base_dir: Path) -> Path | None:
     """
-    מחפש את התיקייה שמכילה exiftool.exe יחסית לתיקיית הפרויקט (base_dir).
+    Search for the directory containing exiftool.exe relative to the project directory (base_dir).
     """
-    # מועמדים נפוצים בתוך הפרויקט
+    # Common candidates within the project
     candidates = [
         base_dir / "exiftool.exe",
         base_dir / "exiftool-13.30_64" / "exiftool.exe",
@@ -25,7 +25,7 @@ def _find_exiftool_dir(base_dir: Path) -> Path | None:
         if c.is_file():
             return c.parent
 
-    # חיפוש exiftool*/exiftool.exe עד עומק 3
+    # Search for exiftool*/exiftool.exe up to depth 3
     for exe in base_dir.rglob("exiftool.exe"):
         try:
             depth = len(exe.parent.relative_to(base_dir).parts)
