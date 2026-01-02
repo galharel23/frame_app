@@ -1,20 +1,18 @@
 import os
 import json
 import exifread
-import base64
-import re
 import shutil
 from datetime import datetime
 
-from full_metadata_service import generate_full_metadata_json
-#from qgis_service import prepare_data_for_qgis
+from services.full_metadata_service import generate_full_metadata_json
+#from services.qgis_service import prepare_data_for_qgis
 
-from exif_service import (
+from services.exif_service import (
     extract_gps_info_from_tags,
     get_los_fields,
     extract_relative_altitude,
 )
-from json_builders_service import build_json_structure
+from services.json_builders_service import build_json_structure
 
 # Main processing
 

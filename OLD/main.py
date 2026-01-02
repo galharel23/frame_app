@@ -1,18 +1,19 @@
-﻿# not is use at all
+﻿# Not used at all
 import flet as ft
 import asyncio, os, shutil, sys, subprocess
 from pathlib import Path
-from image_to_json_generator import process_images_to_individual_json, prepare_data_for_qgis
+from image_to_json_generator import process_images_to_individual_json
+from qgis_service import prepare_data_for_qgis
 
-# תמונת רחפן במסך הפתיחה (אם תריצי בדפדפן, הריצי עם assets_dir="assets")
+# Drone image for opening screen (if running in browser, run with assets_dir="assets")
 DRONE_IMG = "image/drone_bkrnd2.png"
 
-# אייקון העתקה – תואם גם לגרסאות בלי ft.icons
+# Copy icon – compatible with versions without ft.icons
 ICON_COPY = getattr(getattr(ft, "Icons", object), "CONTENT_COPY", None)
 
 
 def run_pipeline(folder_path: str) -> str:
-    """מריץ את הפייפליין שלך ומחזיר נתיב ל-ZIP שנוצר."""
+    """Run the pipeline and return path to the created ZIP."""
     process_images_to_individual_json(folder_path)
     prepare_data_for_qgis(folder_path)
     to_qgis_dir = os.path.join(folder_path, "TO_QGIS")
@@ -23,7 +24,7 @@ def run_pipeline(folder_path: str) -> str:
 
 
 def open_path_native(path: str, page: ft.Page):
-    """פותח קובץ/תיקייה מקומית בצורה נייטיבית לפי מערכת ההפעלה."""
+    """Open a file/folder natively on the current operating system."""
     try:
         if sys.platform.startswith("win"):
             os.startfile(path)  # type: ignore[attr-defined]
@@ -97,7 +98,7 @@ def build_opening_screen(on_click):
 
 
 def build_image_input_screen(page: ft.Page):
-    """מסך בחירת קובץ → טען תמונה — ממורכז, עם תצוגה מקדימה קטנה ותוצאות עוטפות."""
+    """File selection screen → Load image - centered with small preview and wrapped results."""
     selected_path = {"value": None}
     PREVIEW_W, PREVIEW_H = 360, 240
 
@@ -125,7 +126,7 @@ def build_image_input_screen(page: ft.Page):
         content=ft.Text("תצוגה מקדימה תופיע כאן", color="#666"),
     )
 
-    # טקסט תוצאה שעוטף נתיב ארוך
+    # Result text that wraps long paths
     result_text = ft.Text(
         "",
         color="#cccccc",
@@ -137,7 +138,7 @@ def build_image_input_screen(page: ft.Page):
         text_align=ft.TextAlign.CENTER,
     )
 
-    # כפתורי פעולה (ZIP/תיקייה/העתקה)
+    # Action buttons (ZIP/folder/copy)
     result_buttons = ft.Row([], alignment=ft.MainAxisAlignment.CENTER, spacing=16)
 
     progress_dlg = ft.AlertDialog(
@@ -227,7 +228,7 @@ def build_image_input_screen(page: ft.Page):
 
     load_button = ft.ElevatedButton(text="טען תמונה (הרץ עיבוד)", on_click=on_load_clicked)
 
-    # תוכן המסך — בתוך Card ממורכז וצר יותר
+    # Screen content - inside centered and narrower Card
     card_content = ft.Column(
         controls=[
             title,
@@ -249,40 +250,51 @@ def build_image_input_screen(page: ft.Page):
 
     card = ft.Card(
         content=ft.Container(
-            width=560,  # רוחב הכרטיס
+            width=560,  # Card width
             padding=24,
             content=card_content,
         )
     )
 
-    # כל המסך ממורכז באמצע הדף
+    # Entire screen centered in the middle
     return ft.Container(expand=True, alignment=ft.alignment.center, content=card)
 
 
 def main(page: ft.Page):
+
     page.title = "Frame App"
     page.theme_mode = ft.ThemeMode.DARK
     page.bgcolor = "#000000"
 
-    async def go_loading_then_input(e):
-        # מרכוז הטעינה
+    from screens.media_type import build_media_type_screen
+    from screens.image_select import build_image_select_screen
+    from screens.video_processing import build_video_processing_screen
+
+    async def go_to_media_type(e=None):
+        page.controls.clear()
+        page.add(build_media_type_screen(on_photos=go_loading_then_input, on_videos=go_to_video_processing))
+        page.update()
+
+    async def go_loading_then_input(e=None):
         page.horizontal_alignment = "center"
         page.vertical_alignment = "center"
-
         page.controls.clear()
         page.add(build_loader(message="מכין את עמוד טעינת התמונה...", subtext="רגע אחד..."))
         page.update()
         await asyncio.sleep(0.5)
-
-        # מסך הקלט – גם כן ממורכז
         page.controls.clear()
         page.add(build_image_input_screen(page))
         page.update()
 
-    page.add(build_opening_screen(on_click=go_loading_then_input))
+    def go_to_video_processing(e=None):
+        page.controls.clear()
+        page.add(build_video_processing_screen())
+        page.update()
+
+    page.add(build_opening_screen(on_click=go_to_media_type))
 
 
 if __name__ == "__main__":
-    # להרצה בדפדפן (אם צריך להציג את תמונת הרחפן): בטלי את השורה למטה והשתמשי בשורה המודגמת
+    # To run in browser (if you need to display the drone image): comment out the line below and use the line above
     # ft.app(target=main, view=ft.AppView.WEB_BROWSER, assets_dir="assets")
     ft.app(target=main)
