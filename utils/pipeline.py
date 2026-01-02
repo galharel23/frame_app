@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from image_to_json_generator import process_images_to_individual_json
-from qgis_service import prepare_data_for_qgis
+from services.qgis_service import prepare_data_for_qgis
 
 
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".gif"}
@@ -68,16 +68,16 @@ def run_whitening(
     skip_log: bool = False,
 ) -> Dict:
     """
-    1) יוצר תיקיית סשן בשם תאריך־שעה
-    2) מעתיק אליה את *כל התמונות* שנבחרו ואת config.json
-    3) מריץ את העיבוד על תיקיית הסשן עצמה
-    4) מכין TO_QGIS + ZIP
-    5) מחזיר אובייקט לתצוגה במסך התוצאות
+    1) Create a session folder named date-time
+    2) Copy to it all selected images and config.json
+    3) Run processing on the session folder itself
+    4) Prepare TO_QGIS + ZIP
+    5) Return an object for display on the results screen
     """
-    # 1) תיקיית סשן
+    # 1) Session folder
     session_dir, session_name = _create_session_dir()
 
-    # 2) העתקת תמונות שנבחרו
+    # 2) Copy selected images
     copied = 0
     for p in selected_paths:
         if not p:
