@@ -32,7 +32,7 @@ def classify_sensor_type_from_name(filename: str) -> str:
     """
     Classify sensor type by filename suffix:
       *_T -> IR
-      *_Z -> EO
+      *_Z -> VIS
       *_W -> VIS
     Default -> VIS
     """
@@ -47,7 +47,7 @@ def classify_sensor_type_from_name(filename: str) -> str:
     if suffix == "T":
         return "IR"
     if suffix == "Z":
-        return "EO"
+        return "VIS"
     if suffix == "W":
         return "VIS"
 
