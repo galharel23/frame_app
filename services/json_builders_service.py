@@ -129,7 +129,7 @@ def build_basic_data(filename, tags, full_path):
 
     return {
         "id": os.path.splitext(filename)[0],
-        "sensorName": "Modash",
+        "sensorName": "Padam -Dror",
         "sensorType": sensor_type,   # IR / EO / VIS by filename suffix
         "imageFile": filename,
         "imagingTime": imaging_time,
