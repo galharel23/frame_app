@@ -5,12 +5,22 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[
-        ('image', 'image'),         # ← תיקיית תמונות!
-        ('screens', 'screens'),     # ← אם יש Flet screens
-        ('utils', 'utils'),         # ← אם יש פונקציות עזר
-        ('exiftool-13.30_64', 'exiftool-13.30_64'),  # ← אם את משתמשת
+        ('image', 'image'),
+        ('screens', 'screens'),
+        ('utils', 'utils'),
+        ('services', 'services'),
+        ('exiftool-13.30_64', 'exiftool-13.30_64'),
     ],
-    hiddenimports=['flet', 'PIL', 'json', 'subprocess'],
+    hiddenimports=[
+        'flet', 'PIL', 'json', 'subprocess',
+        'services.exif_service',
+        'services.json_builders_service',
+        'services.srt_service',
+        'services.geo_math_service',
+        'services.qgis_service',
+        'services.full_metadata_service',
+        'services.utils_service',
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -29,6 +39,6 @@ exe = EXE(
     [],
     name='TekenFrame',
     debug=False,
-    console=False,   # ← אם תרצי לראות שגיאות, תשימי True
+    console=False,
     upx=True,
 )

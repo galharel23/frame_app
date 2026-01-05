@@ -5,7 +5,9 @@ import shutil
 from datetime import datetime
 
 from services.full_metadata_service import generate_full_metadata_json
-#from services.qgis_service import prepare_data_for_qgis
+from utils.logging_service import get_logger
+
+logger = get_logger(__name__)
 
 from services.exif_service import (
     extract_gps_info_from_tags,
@@ -92,27 +94,39 @@ def _process_single_image(
         "failed_missing"   – if missing critical fields
         "failed_exception" – if an exception occurred during processing
     """
-    print(f"\nProcessing: {filename}")
+    logger.info(f"Processing image: {filename}")
 
     try:
         # Read EXIF tags from the image
+        logger.debug(f"Reading EXIF from: {full_path}")
         with open(full_path, "rb") as img_file:
             tags = exifread.process_file(img_file, details=True)
+        logger.debug(f"EXIF tags extracted: {len(tags)} tags found")
 
         # GPS (lat/lon in WGS84 decimal degrees)
+        logger.debug("Extracting GPS information...")
         lat, lon = extract_gps_info_from_tags(tags)
+        logger.debug(f"GPS: Latitude={lat}, Longitude={lon}")
 
         # LOS + relative altitude (from ExifTool / XMP)
+        logger.debug("Extracting LOS fields...")
         los_fields = get_los_fields(full_path, drone_type=drone_type)
+        logger.debug(f"LOS: Azimuth={los_fields.get('losAzimuth')}, Pitch={los_fields.get('losPitch')}, Roll={los_fields.get('losRoll')}")
+        
+        logger.debug("Extracting relative altitude...")
         relative_alt = extract_relative_altitude(full_path)
+        logger.debug(f"Relative altitude: {relative_alt}")
 
         has_los_fields = (
             los_fields.get("losAzimuth", 0.0) != 0.0
             and los_fields.get("losPitch", 0.0) != 0.0
         )
         has_relative_alt = relative_alt != 0.0
+        
+        logger.debug(f"Validation: has_los={has_los_fields}, has_alt={has_relative_alt}")
 
         # Build the JSON structure (including platformName = drone_type)
+        logger.debug("Building JSON structure...")
         json_data = build_json_structure(
             filename,
             tags,
@@ -137,7 +151,7 @@ def _process_single_image(
                 pass
 
             output_path = os.path.join(image_dir, f"{base_name}.json")
-            print(f" Successfully extracted critical fields: {output_path}")
+            logger.info(f"✓ {filename}: Successfully extracted critical fields → {output_path}")
             _write_json(output_path, json_data)
             return "success"
 
@@ -157,13 +171,12 @@ def _process_single_image(
             missing.append("LOS fields (azimuth/pitch)")
         if not has_relative_alt:
             missing.append("relative altitude")
-        print(
-            f"⚠️ Missing critical fields ({', '.join(missing)}): {output_path}"
-        )
+        logger.warning(f"⚠️ {filename}: Missing critical fields ({', '.join(missing)}) → {output_path}")
         _write_json(output_path, json_data)
         return "failed_missing"
 
     except Exception as e:
+        logger.error(f"✗ {filename}: Exception during processing: {e}", exc_info=True)
         print(f"❌ Failed to process {filename}: {e}")
 
         # Best-effort attempt to produce a "fallback" JSON with whatever data we can read
@@ -256,9 +269,10 @@ def process_images_to_individual_json(session_dir: str, drone_type: str | None =
     if not drone_type:
         drone_type = _read_drone_type_from_config(session_dir)
 
-    print(f"Using platformName (drone_type): {drone_type}")
-    print(f"Session dir: {session_dir}")
-    print(f"Looking for images in: {session_dir}")
+    logger.info(f"=== Starting image batch processing ===")
+    logger.info(f"Session: {session_name} | Platform: {drone_type}")
+    logger.info(f"Session dir: {session_dir}")
+    logger.info(f"Output folders: success={output_dir}, failed={fail_output_dir}")
 
     total_images = 0
     successful_extractions = 0
@@ -292,6 +306,8 @@ def process_images_to_individual_json(session_dir: str, drone_type: str | None =
     )
 
     # Print summary statistics to the console
+    logger.info(f"=== Processing Complete ===")
+    logger.info(f"Total: {total_images} | Success: {successful_extractions} | Failed: {failed_extractions}")
     print("\nProcessing Statistics:")
     print(f"Total images processed: {total_images}")
     print(f"Successfully extracted all critical fields: {successful_extractions}")
