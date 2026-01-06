@@ -4,7 +4,7 @@ import flet as ft
 import os, sys, subprocess
 from pathlib import Path
 from typing import Dict
-from design_system import SUCCESS, ERROR, TEXT_PRIMARY, TEXT_SECONDARY, BG_DARK_2, BORDER_RADIUS_MD, TEXT_TERTIARY, BUTTON_SECONDARY
+from design_system import SUCCESS, ERROR, TEXT_PRIMARY, TEXT_SECONDARY, BG_DARK_2, BORDER_RADIUS_MD, TEXT_TERTIARY, BUTTON_SECONDARY, SPACING_MD, SPACING_LG
 
 
 def _open_native(path: str, page: ft.Page, select: bool = False):
@@ -198,16 +198,33 @@ def build_results_screen(page: ft.Page, processing_result: Dict, on_again, on_me
         header,
         ft.Container(padding=8, content=summary_bar),
         ft.Divider(opacity=0.1),
-        ft.Text("סטטוס לפי תמונה:", size=14, color=TEXT_SECONDARY),
-        ft.ListView(controls=list_tiles, height=420, spacing=10, auto_scroll=False),
-        ft.Row([again_btn], alignment=ft.MainAxisAlignment.CENTER),
     ]
+    
+    # Scrollable content area for results
+    scrollable_content = ft.Column([
+        ft.Text("סטטוס לפי תמונה:", size=14, color=TEXT_SECONDARY),
+        ft.ListView(controls=list_tiles, height=400, spacing=10, auto_scroll=False),
+    ], spacing=SPACING_MD)
+    
+    # Action buttons (always visible)
+    action_buttons = ft.Column([
+        ft.Row([again_btn], alignment=ft.MainAxisAlignment.CENTER),
+    ])
+    
     if media_type_btn:
-        controls_list.append(ft.Row([media_type_btn], alignment=ft.MainAxisAlignment.CENTER))
+        action_buttons.controls.append(
+            ft.Row([media_type_btn], alignment=ft.MainAxisAlignment.CENTER)
+        )
+    
+    # Main body with scrollable results and fixed buttons
     body = ft.Column(
-        spacing=16,
+        spacing=SPACING_LG,
         width=820,
-        controls=controls_list,
+        controls=[
+            *controls_list,
+            scrollable_content,
+            action_buttons,
+        ],
     )
 
     card = ft.Card(content=ft.Container(padding=20, content=body))

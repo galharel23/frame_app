@@ -310,7 +310,7 @@ def build_video_results_screen(page: ft.Page, results: list, session_folder: str
         style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10)),
     )
 
-    # Main layout
+    # Main layout with scrollable results table
     content = ft.Column(
         [
             ft.Row(
@@ -320,14 +320,24 @@ def build_video_results_screen(page: ft.Page, results: list, session_folder: str
                 spacing=12,
             ),
             ft.Divider(height=1, color=BORDER_COLOR),
+            # Scrollable results area
             ft.Column(
                 [
                     ft.Text(f"פועלו {len(results)} קבצים", size=14, color=TEXT_SECONDARY),
-                    results_table,
+                    ft.Container(
+                        content=results_table,
+                        height=400,
+                    ),
+                ],
+                expand=True,
+                spacing=16,
+            ),
+            # Fixed button area (always visible)
+            ft.Column(
+                [
                     open_btn,
                     again_btn,
                 ],
-                expand=True,
                 spacing=16,
             ),
         ],
