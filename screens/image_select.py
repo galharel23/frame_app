@@ -3,10 +3,18 @@ from __future__ import annotations
 import flet as ft
 import asyncio, os, pathlib
 from typing import List, Set
+import logging
 
 from utils.pipeline import run_whitening
 from screens.results import build_results_screen
 from screens.opening import build_opening_screen
+from design_system import (
+    BG_DARK_1, BG_DARK_2, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_TERTIARY, 
+    PRIMARY, ERROR, BORDER_COLOR, SPACING_LG, BORDER_RADIUS_MD, SPACING_SM, SPACING_MD, SPACING_XL
+)
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".gif"}
 
@@ -56,10 +64,10 @@ def build_image_select_screen(page: ft.Page, on_back=None):
     # selected_log_path = ft.Text("לא נבחר קובץ log", color="#9aa0a6", size=13)
 
     selected_files: Set[str] = set()
-    files_counter = ft.Text("נבחרו 0 קבצי תמונה", size=14, color="#cccccc")
+    files_counter = ft.Text("נבחרו 0 קבצי תמונה", size=14, color=TEXT_SECONDARY)
 
     # error msg
-    error_text = ft.Text("", color="#ff5252", size=13)
+    error_text = ft.Text("", color=ERROR, size=13)
 
     progress_dlg = ft.AlertDialog(
         modal=True,
@@ -114,7 +122,7 @@ def build_image_select_screen(page: ft.Page, on_back=None):
     # --- "ריבוע" המרכז – מציג שמות קבצים (עם גלילה) ---
     placeholder_text = ft.Text(
         _ltr("גררו תמונות/תיקיות לכאן או השתמשו בכפתורים למעלה"),
-        color="#9aa0a6",
+        color=TEXT_TERTIARY,
         size=12,
         text_align=ft.TextAlign.CENTER,
     )
@@ -122,9 +130,9 @@ def build_image_select_screen(page: ft.Page, on_back=None):
     drop_list = ft.ListView(height=180, spacing=4, auto_scroll=False)
     drop_area = ft.Container(
         height=200,
-        bgcolor="#0f0f0f",
-        border=ft.border.all(1, "#303030"),
-        border_radius=10,
+        bgcolor=BG_DARK_2,
+        border=ft.border.all(1, BORDER_COLOR),
+        border_radius=BORDER_RADIUS_MD,
         alignment=ft.alignment.center,
         content=placeholder_text,
         padding=10,
@@ -135,7 +143,7 @@ def build_image_select_screen(page: ft.Page, on_back=None):
         files_counter.value = f"נבחרו {count} קבצי תמונה"
         if count > 0:
             drop_list.controls = [
-                ft.Text(_ltr(pathlib.Path(p).name), size=12, color="#bdbdbd", tooltip=p)
+                ft.Text(_ltr(pathlib.Path(p).name), size=12, color=TEXT_SECONDARY, tooltip=p)
                 for p in sorted(selected_files)
             ]
             drop_area.content = drop_list
@@ -282,8 +290,8 @@ def build_image_select_screen(page: ft.Page, on_back=None):
 
     submit_btn = ft.ElevatedButton(
         "שלח להלבנה",
-        bgcolor="#3b82f6",
-        color="white",
+        bgcolor=PRIMARY,
+        color=TEXT_PRIMARY,
         style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
         on_click=on_submit_clicked,
     )
@@ -333,20 +341,54 @@ def build_image_select_screen(page: ft.Page, on_back=None):
     )
 
     # --- Layout ---
-    header = ft.Text("בחירת התמונות", size=32, weight=ft.FontWeight.BOLD, color="white")
-    header_row = ft.Row([header], alignment=ft.MainAxisAlignment.CENTER)
+    header = ft.Text("🖼️ בחירת התמונות", size=36, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY)
+    subtitle = ft.Text("בחרו תמונות להלבנה", size=14, color=TEXT_SECONDARY)
+    
+    header_section = ft.Container(
+        content=ft.Column([header, subtitle], spacing=SPACING_SM, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+        padding=ft.Padding(0, SPACING_LG, 0, SPACING_XL),
+    )
+
+    # Enhanced drop area with better visual design
+    placeholder_icon = ft.Icon(ft.Icons.CLOUD_UPLOAD, size=64, color=TEXT_TERTIARY)
+    enhanced_placeholder = ft.Column([
+        placeholder_icon,
+        ft.Text(
+            "גררו תמונות או תיקיות לכאן",
+            size=14,
+            weight=ft.FontWeight.W_600,
+            color=TEXT_TERTIARY,
+            text_align=ft.TextAlign.CENTER,
+        ),
+        ft.Text(
+            "או השתמשו בכפתורים למעלה",
+            size=12,
+            color=TEXT_TERTIARY,
+            text_align=ft.TextAlign.CENTER,
+        ),
+    ], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=SPACING_MD)
+    
+    drop_area.content = enhanced_placeholder
+    drop_area.height = 240
+    drop_area.bgcolor = BG_DARK_2
+    
+    # Better button group styling
+    button_group = ft.Container(
+        content=ft.Row([
+            ft.Container(content=add_folder_btn, expand=True),
+            ft.Container(content=add_files_btn, expand=True),
+            ft.Container(content=clear_btn, expand=False),
+        ], spacing=SPACING_MD),
+        padding=ft.Padding(0, SPACING_MD, 0, SPACING_MD),
+    )
 
     body = ft.Column(
         [
-            header_row,
+            header_section,
             selected_drone,
-            # 🔻 Removed log UI:
-            # ft.Row([pick_log_btn, no_log_cb], spacing=12, alignment=ft.MainAxisAlignment.START),
-            # ft.Text("קובץ log נבחר:", size=12, color="#9aa0a6"),
-            # selected_log_path,
-            ft.Divider(opacity=0.1),
-            ft.Text("הוספת תמונות", size=14, weight=ft.FontWeight.W_600, color="#e0e0e0"),
-            ft.Row([add_folder_btn, add_files_btn, clear_btn], spacing=10),
+            ft.Divider(opacity=0.1, height=1),
+            ft.Text("📁 הוספת תמונות", size=14, weight=ft.FontWeight.W_600, color=TEXT_SECONDARY),
+            button_group,
             ft.Row([files_counter], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             drop_area,
             ft.Container(height=6),

@@ -10,6 +10,7 @@ from screens.image_select import build_image_select_screen
 from screens.media_type import build_media_type_screen
 from screens.video_processing import build_video_processing_screen
 from utils.exiftool_setup import ensure_exiftool_on_path
+from design_system import BG_DARK_0, TEXT_SECONDARY
 
 
 # Function to ensure file exists in both EXE and regular debug
@@ -29,7 +30,7 @@ def resource_path(relative_path: str):
 def main(page: ft.Page):
     page.title = "WhiteBox"
     page.theme_mode = ft.ThemeMode.DARK
-    page.bgcolor = "#000000"
+    page.bgcolor = BG_DARK_0
     page.horizontal_alignment = "center"
     page.vertical_alignment = "center"
     page.rtl = True
@@ -37,7 +38,7 @@ def main(page: ft.Page):
     setup_dlg = ft.AlertDialog(
         modal=True,
         content=ft.Column(
-            controls=[ft.ProgressRing(), ft.Text("Setting up work environment (ExifTool)...", size=16)],
+            controls=[ft.ProgressRing(), ft.Text("Setting up work environment (ExifTool)...", size=16, color=TEXT_SECONDARY)],
             tight=True,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             alignment=ft.MainAxisAlignment.CENTER,

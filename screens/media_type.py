@@ -1,45 +1,74 @@
 import flet as ft
+from design_system import (TEXT_PRIMARY, BUTTON_SECONDARY, PRIMARY, TEXT_SECONDARY, 
+                           SPACING_LG, SPACING_XL, SPACING_MD, BORDER_RADIUS_XL,
+                           BG_DARK_2, ACCENT_PURPLE, ACCENT_GREEN, TEXT_TERTIARY)
 
 def build_media_type_screen(on_photos, on_videos):
     """
-    Screen with two buttons: Photos and Videos.
+    Modern media type selection screen with enhanced visual design.
     """
-    title = ft.Text("בחרו סוג מדיה לעיבוד", size=36, weight=ft.FontWeight.BOLD, color="#eeeeee")
-    photos_btn = ft.ElevatedButton(
-        text="תמונות",
+    title = ft.Text(
+        "בחרו סוג מדיה לעיבוד",
+        size=40,
+        weight=ft.FontWeight.BOLD,
+        color=TEXT_PRIMARY,
+        text_align=ft.TextAlign.CENTER,
+    )
+    
+    subtitle = ft.Text(
+        "בחרו את סוג הקבצים להמרה",
+        size=14,
+        color=TEXT_SECONDARY,
+        text_align=ft.TextAlign.CENTER,
+    )
+    
+    # Photos button with modern design
+    photos_btn = ft.Container(
+        content=ft.Column([
+            ft.Icon(ft.Icons.IMAGE, size=48, color=TEXT_PRIMARY),
+            ft.Text("תמונות", size=20, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
+            ft.Text("עיבוד קבצי תמונה", size=12, color=TEXT_SECONDARY),
+        ], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=12),
         on_click=on_photos,
-        style=ft.ButtonStyle(
-            bgcolor="#6b7280",
-            color="#ffffff",
-            padding=ft.Padding(44, 32, 44, 32),
-            text_style=ft.TextStyle(size=26, weight=ft.FontWeight.BOLD),
-            shape=ft.RoundedRectangleBorder(radius=12),
-        ),
+        padding=ft.Padding(32, 40, 32, 40),
+        bgcolor=BUTTON_SECONDARY,
+        border_radius=BORDER_RADIUS_XL,
+        alignment=ft.alignment.center,
+        ink=True,
     )
-    videos_btn = ft.ElevatedButton(
-        text="וידאו",
+    
+    # Videos button with modern design
+    videos_btn = ft.Container(
+        content=ft.Column([
+            ft.Icon(ft.Icons.VIDEOCAM, size=48, color=TEXT_PRIMARY),
+            ft.Text("וידאו", size=20, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
+            ft.Text("המרת קבצי וידאו", size=12, color=TEXT_SECONDARY),
+        ], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=12),
         on_click=on_videos,
-        style=ft.ButtonStyle(
-            bgcolor="#3b82f6",
-            color="#ffffff",
-            padding=ft.Padding(44, 32, 44, 32),
-            text_style=ft.TextStyle(size=26, weight=ft.FontWeight.BOLD),
-            shape=ft.RoundedRectangleBorder(radius=12),
-        ),
+        padding=ft.Padding(32, 40, 32, 40),
+        bgcolor=PRIMARY,
+        border_radius=BORDER_RADIUS_XL,
+        alignment=ft.alignment.center,
+        ink=True,
     )
+    
     btn_row = ft.Row([
-        photos_btn,
-        videos_btn
-    ], alignment=ft.MainAxisAlignment.CENTER, spacing=40)
+        ft.Container(content=photos_btn, expand=True),
+        ft.Container(width=SPACING_LG),
+        ft.Container(content=videos_btn, expand=True),
+    ], alignment=ft.MainAxisAlignment.CENTER, spacing=0)
+    
     card = ft.Card(
         content=ft.Container(
-            width=500,
-            padding=32,
+            width=700,
+            padding=SPACING_XL,
             content=ft.Column([
                 title,
-                ft.Container(height=40),
+                ft.Container(height=SPACING_MD),
+                subtitle,
+                ft.Container(height=SPACING_XL),
                 btn_row
-            ], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=24)
+            ], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=0)
         )
     )
     return ft.Container(expand=True, alignment=ft.alignment.center, content=card)

@@ -8,6 +8,7 @@ from typing import List, Set
 
 from services.srt_service import convert_srt_to_csv
 from screens.results import build_results_screen
+from design_system import TEXT_SECONDARY, ERROR, TEXT_TERTIARY, BG_DARK_2, BORDER_COLOR, BORDER_RADIUS_MD, SUCCESS, BUTTON_SECONDARY, TEXT_PRIMARY
 
 SRT_EXT = {".srt"}
 
@@ -33,10 +34,10 @@ def build_video_processing_screen(page: ft.Page, on_back=None):
 
     # State
     selected_files: Set[str] = set()
-    files_counter = ft.Text("נבחרו 0 קבצי SRT", size=14, color="#cccccc")
+    files_counter = ft.Text("נבחרו 0 קבצי SRT", size=14, color=TEXT_SECONDARY)
 
     # Error message
-    error_text = ft.Text("", color="#ff5252", size=13)
+    error_text = ft.Text("", color=ERROR, size=13)
 
     # Progress dialog
     progress_dlg = ft.AlertDialog(
@@ -65,7 +66,7 @@ def build_video_processing_screen(page: ft.Page, on_back=None):
     # Drop area display
     placeholder_text = ft.Text(
         _ltr("גרור קבצי SRT לכאן או השתמש בכפתור לעיל"),
-        color="#9aa0a6",
+        color=TEXT_TERTIARY,
         size=12,
         text_align=ft.TextAlign.CENTER,
     )
@@ -73,9 +74,9 @@ def build_video_processing_screen(page: ft.Page, on_back=None):
     drop_list = ft.ListView(height=180, spacing=4, auto_scroll=False)
     drop_area = ft.Container(
         height=200,
-        bgcolor="#0f0f0f",
-        border=ft.border.all(1, "#303030"),
-        border_radius=10,
+        bgcolor=BG_DARK_2,
+        border=ft.border.all(1, BORDER_COLOR),
+        border_radius=BORDER_RADIUS_MD,
         alignment=ft.alignment.center,
         content=placeholder_text,
         padding=10,
@@ -86,7 +87,7 @@ def build_video_processing_screen(page: ft.Page, on_back=None):
         files_counter.value = f"נבחרו {count} קבצי SRT"
         if count > 0:
             drop_list.controls = [
-                ft.Text(_ltr(pathlib.Path(p).name), size=12, color="#bdbdbd", tooltip=p)
+                ft.Text(_ltr(pathlib.Path(p).name), size=12, color=TEXT_SECONDARY, tooltip=p)
                 for p in sorted(selected_files)
             ]
             drop_area.content = drop_list
@@ -206,13 +207,13 @@ def build_video_processing_screen(page: ft.Page, on_back=None):
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=12,
             ),
-            ft.Divider(height=1, color="#303030"),
+            ft.Divider(height=1, color=BORDER_COLOR),
             ft.Column(
                 [
-                    ft.Text("בחר קבצי SRT להמרה:", size=14, color="#b0bec5"),
+                    ft.Text("בחר קבצי SRT להמרה:", size=14, color=TEXT_SECONDARY),
                     pick_srt_btn,
                     files_counter,
-                    ft.Text("קבצים:", size=12, color="#9aa0a6"),
+                    ft.Text("קבצים:", size=12, color=TEXT_TERTIARY),
                     drop_area,
                     error_text,
                     process_btn,
@@ -264,7 +265,7 @@ def build_video_results_screen(page: ft.Page, results: list, session_folder: str
                     ft.DataCell(ft.Text(
                         result["status"].upper(),
                         size=11,
-                        color="#7fd37f" if result["status"] == "success" else "#ff5252"
+                        color=SUCCESS if result["status"] == "success" else ERROR
                     )),
                     ft.DataCell(ft.Text(result["message"], size=11)),
                 ],
@@ -304,8 +305,8 @@ def build_video_results_screen(page: ft.Page, results: list, session_folder: str
         text="המרה נוספת",
         icon=ft.Icons.AUTORENEW,
         on_click=on_again_click,
-        bgcolor="#374151",
-        color="white",
+        bgcolor=BUTTON_SECONDARY,
+        color=TEXT_PRIMARY,
         style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10)),
     )
 
@@ -318,10 +319,10 @@ def build_video_results_screen(page: ft.Page, results: list, session_folder: str
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=12,
             ),
-            ft.Divider(height=1, color="#303030"),
+            ft.Divider(height=1, color=BORDER_COLOR),
             ft.Column(
                 [
-                    ft.Text(f"פועלו {len(results)} קבצים", size=14, color="#b0bec5"),
+                    ft.Text(f"פועלו {len(results)} קבצים", size=14, color=TEXT_SECONDARY),
                     results_table,
                     open_btn,
                     again_btn,

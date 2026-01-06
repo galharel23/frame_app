@@ -4,41 +4,62 @@ import flet as ft
 from pathlib import Path
 
 from consts import (LOGO_IMG, DRONE_IMG)
+from design_system import (PRIMARY, PRIMARY_HOVER, TEXT_PRIMARY, BG_DARK_1, BG_DARK_2, 
+                           SPACING_LG, BORDER_RADIUS_XL, TEXT_SECONDARY, ACCENT_PURPLE,
+                           SPACING_MD, SPACING_XL, ACCENT_GREEN)
 
 def build_opening_screen(on_start):
 
+    # Animated title with gradient effect
     title = (
         ft.Image(src=LOGO_IMG, width=950, height=200, fit=ft.ImageFit.CONTAIN)
         if Path(LOGO_IMG).exists()
         else ft.Text("הלוגו logo.png לא נמצא", size=40, color="#ff8a80")
     )
 
+    # Enhanced start button with modern styling
     start_btn = ft.ElevatedButton(
-        text="בואו נלבין",
+        text="🚀 בואו נלבין",
         on_click=on_start,
         style=ft.ButtonStyle(
-            bgcolor="#dddddd",
-            color="#222222",
-            padding=ft.Padding(44, 32, 44, 32),
-            text_style=ft.TextStyle(size=26, weight=ft.FontWeight.BOLD),
-            shape=ft.RoundedRectangleBorder(radius=12),
+            bgcolor=PRIMARY,
+            color=TEXT_PRIMARY,
+            padding=ft.Padding(48, 28, 48, 28),
+            text_style=ft.TextStyle(size=24, weight=ft.FontWeight.BOLD, letter_spacing=0.5),
+            shape=ft.RoundedRectangleBorder(radius=BORDER_RADIUS_XL),
+            side=ft.BorderSide(2, PRIMARY),
+            shadow_color=PRIMARY,
         ),
     )
 
+    # Subtitle with description
+    subtitle = ft.Text(
+        "המרה חכמה של תמונות ללא תלות ברקע",
+        size=16,
+        color=TEXT_SECONDARY,
+        text_align=ft.TextAlign.CENTER,
+        weight=ft.FontWeight.W_500,
+    )
+
     left = ft.Column(
-        [title, start_btn],
+        [
+            title,
+            ft.Container(height=SPACING_MD),
+            subtitle,
+            ft.Container(height=SPACING_XL),
+            start_btn,
+        ],
         spacing=0,
         alignment=ft.MainAxisAlignment.CENTER,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER
     )
 
-
+    # Animated drone image with container
     right_content = (
         ft.Image(src=DRONE_IMG, width=600, height=600, fit=ft.ImageFit.CONTAIN)
         if Path(DRONE_IMG).exists()
         else ft.Text("התמונה Drone.gif לא נמצאה", color="#ff8a80")
     )
-
 
     right = ft.Container(
         content=right_content,

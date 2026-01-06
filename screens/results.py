@@ -4,6 +4,7 @@ import flet as ft
 import os, sys, subprocess
 from pathlib import Path
 from typing import Dict
+from design_system import SUCCESS, ERROR, TEXT_PRIMARY, TEXT_SECONDARY, BG_DARK_2, BORDER_RADIUS_MD, TEXT_TERTIARY, BUTTON_SECONDARY
 
 
 def _open_native(path: str, page: ft.Page, select: bool = False):
@@ -32,7 +33,7 @@ def _open_native(path: str, page: ft.Page, select: bool = False):
 def _status_chip(ok: bool):
     return ft.Container(
         padding=ft.padding.symmetric(horizontal=10, vertical=4),
-        bgcolor="#0b3d0b" if ok else "#3d0b0b",
+        bgcolor=SUCCESS if ok else ERROR,
         border_radius=999,
         content=ft.Row(
             spacing=6,
@@ -43,7 +44,7 @@ def _status_chip(ok: bool):
                     if ok
                     else ft.Icon(ft.Icons.ERROR, size=16)
                 ),
-                ft.Text("הצלחה" if ok else "כשלון", size=12, color="#e8e8e8"),
+                ft.Text("הצלחה" if ok else "כשלון", size=12, color=TEXT_PRIMARY),
             ],
         ),
     )
@@ -61,7 +62,7 @@ def build_results_screen(page: ft.Page, processing_result: Dict, on_again, on_me
       }
     on_again: callback לחזרה למסך ההלבנה
     """
-    header = ft.Text("תוצאות ההלבנה", size=32, weight=ft.FontWeight.BOLD, color="white")
+    header = ft.Text("תוצאות ההלבנה", size=32, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY)
 
     zip_path = processing_result.get("zip_path", "")
     workdir = processing_result.get("workdir", "")
@@ -99,7 +100,7 @@ def build_results_screen(page: ft.Page, processing_result: Dict, on_again, on_me
                                         image_name,
                                         size=16,
                                         weight=ft.FontWeight.W_600,
-                                        color="white",
+                                        color=TEXT_PRIMARY,
                                     ),
                                     _status_chip(ok),
                                 ],
@@ -108,11 +109,11 @@ def build_results_screen(page: ft.Page, processing_result: Dict, on_again, on_me
                                 spacing=8,
                                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                                 controls=[
-                                    ft.Text("JSON:", size=12, color="#9aa0a6"),
+                                    ft.Text("JSON:", size=12, color=TEXT_TERTIARY),
                                     ft.Text(
                                         json_file_path or "לא קיים",
                                         size=12,
-                                        color="#cfcfcf",
+                                        color=TEXT_SECONDARY,
                                         selectable=True,
                                     ),
                                 ],
@@ -139,7 +140,7 @@ def build_results_screen(page: ft.Page, processing_result: Dict, on_again, on_me
                                 ],
                             ),
                             (
-                                ft.Text(f"סיבה: {reason}", size=12, color="#d18181")
+                                ft.Text(f"סיבה: {reason}", size=12, color=ERROR)
                                 if (not ok and reason)
                                 else ft.Container()
                             ),
@@ -176,8 +177,8 @@ def build_results_screen(page: ft.Page, processing_result: Dict, on_again, on_me
         text="הלבנה נוספת",
         icon=ft.Icons.AUTORENEW,  # חץ מעגלי
         on_click=on_again,
-        bgcolor="#374151",
-        color="white",
+        bgcolor=BUTTON_SECONDARY,
+        color=TEXT_PRIMARY,
         style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10)),
     )
 
@@ -197,7 +198,7 @@ def build_results_screen(page: ft.Page, processing_result: Dict, on_again, on_me
         header,
         ft.Container(padding=8, content=summary_bar),
         ft.Divider(opacity=0.1),
-        ft.Text("סטטוס לפי תמונה:", size=14, color="#e0e0e0"),
+        ft.Text("סטטוס לפי תמונה:", size=14, color=TEXT_SECONDARY),
         ft.ListView(controls=list_tiles, height=420, spacing=10, auto_scroll=False),
         ft.Row([again_btn], alignment=ft.MainAxisAlignment.CENTER),
     ]
