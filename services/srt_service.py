@@ -24,16 +24,12 @@ class VideoFrameMetadata:
     
     def __init__(
         self,
-        comments: str = "",
-        video_name: str = "",
         altitude: Optional[float] = None,
         longitude: Optional[float] = None,
         latitude: Optional[float] = None,
         time: str = "",
         date: str = ""
     ):
-        self.comments = comments
-        self.video_name = video_name
         self.altitude = altitude
         self.longitude = longitude
         self.latitude = latitude
@@ -43,8 +39,6 @@ class VideoFrameMetadata:
     def to_dict(self) -> Dict:
         """Convert to dictionary with proper column names"""
         return {
-            "COMMENTS": self.comments,
-            "VIDEO NAME": self.video_name,
             "ALTITUDE": self.altitude,
             "LONGITUDE": self.longitude,
             "LATITUDE": self.latitude,
@@ -124,8 +118,6 @@ def process_srt(srt_path: Path) -> List[VideoFrameMetadata]:
         
         # Create frame metadata
         frame = VideoFrameMetadata(
-            comments="",
-            video_name=video_name,
             altitude=altitude,
             longitude=longitude,
             latitude=latitude,
@@ -147,7 +139,7 @@ def export_to_csv(frames: List[VideoFrameMetadata], output_path: Path) -> None:
     
     # Use csv module to properly handle quoting
     with output_path.open("w", encoding="utf-8", newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=["COMMENTS", "VIDEO NAME", "ALTITUDE", "LONGITUDE", "LATITUDE", "TIME", "DATE"])
+        writer = csv.DictWriter(f, fieldnames=["ALTITUDE", "LONGITUDE", "LATITUDE", "TIME", "DATE"])
         writer.writeheader()
         
         for frame in frames:
