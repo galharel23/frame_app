@@ -1,0 +1,45 @@
+repos:
+  # Code formatting
+  - repo: https://github.com/psf/black
+    rev: 23.12.0
+    hooks:
+      - id: black
+        language_version: python3.12
+        args: [--line-length=127]
+
+  # Import sorting
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: [--profile=black, --line-length=127]
+
+  # Linting
+  - repo: https://github.com/PyCQA/flake8
+    rev: 6.1.0
+    hooks:
+      - id: flake8
+        args: ["--max-line-length=127", "--extend-ignore=E203,W503"]
+
+  # File checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-json
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+
+# Configuration
+default_language_version:
+  python: python3.12
+
+exclude: |
+  (?x)^(
+    venv/|
+    .venv/|
+    build/|
+    dist/|
+    \.git/|
+    __pycache__/
+  )
