@@ -1,22 +1,18 @@
-import os
 import json
-import exifread
+import os
 import shutil
-from datetime import datetime
 
+import exifread
+
+from services.exif_service import extract_gps_info_from_tags, extract_relative_altitude, get_los_fields
 from services.full_metadata_service import generate_full_metadata_json
+from services.json_builders_service import build_json_structure
 from utils.logging_service import get_logger
 
 logger = get_logger(__name__)
 
-from services.exif_service import (
-    extract_gps_info_from_tags,
-    get_los_fields,
-    extract_relative_altitude,
-)
-from services.json_builders_service import build_json_structure
-
 # Main processing
+
 
 def _read_drone_type_from_config(folder_path: str) -> str:
     """
@@ -35,6 +31,7 @@ def _read_drone_type_from_config(folder_path: str) -> str:
         print(f"Warning: could not read config.json: {e}")
     return "Unknown platform"
 
+
 def _ensure_output_dirs(session_dir: str) -> tuple[str, str]:
     """
     Ensure that output/ and fail_output/ directories exist inside the session directory.
@@ -47,6 +44,7 @@ def _ensure_output_dirs(session_dir: str) -> tuple[str, str]:
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(fail_output_dir, exist_ok=True)
     return output_dir, fail_output_dir
+
 
 def _iter_session_images(session_dir: str):
     """
@@ -68,12 +66,14 @@ def _iter_session_images(session_dir: str):
 
         yield filename, full_path
 
+
 def _write_json(path: str, data: dict) -> None:
     """
     Write a JSON object to disk with UTF-8 encoding and pretty-print indentation.
     """
     with open(path, "w", encoding="utf-8") as jf:
         json.dump(data, jf, indent=4, ensure_ascii=False)
+
 
 def _process_single_image(
     filename: str,
@@ -111,18 +111,19 @@ def _process_single_image(
         # LOS + relative altitude (from ExifTool / XMP)
         logger.debug("Extracting LOS fields...")
         los_fields = get_los_fields(full_path, drone_type=drone_type)
-        logger.debug(f"LOS: Azimuth={los_fields.get('losAzimuth')}, Pitch={los_fields.get('losPitch')}, Roll={los_fields.get('losRoll')}")
-        
+        logger.debug(
+            f"LOS: Azimuth={los_fields.get('losAzimuth')}, "
+            f"Pitch={los_fields.get('losPitch')}, "
+            f"Roll={los_fields.get('losRoll')}"
+        )
+
         logger.debug("Extracting relative altitude...")
         relative_alt = extract_relative_altitude(full_path)
         logger.debug(f"Relative altitude: {relative_alt}")
 
-        has_los_fields = (
-            los_fields.get("losAzimuth", 0.0) != 0.0
-            and los_fields.get("losPitch", 0.0) != 0.0
-        )
+        has_los_fields = los_fields.get("losAzimuth", 0.0) != 0.0 and los_fields.get("losPitch", 0.0) != 0.0
         has_relative_alt = relative_alt != 0.0
-        
+
         logger.debug(f"Validation: has_los={has_los_fields}, has_alt={has_relative_alt}")
 
         # Build the JSON structure (including platformName = drone_type)
@@ -202,6 +203,7 @@ def _process_single_image(
 
         return "failed_exception"
 
+
 def _write_fns_marker(
     output_dir: str,
     session_name: str,
@@ -214,7 +216,7 @@ def _write_fns_marker(
     Write a .fns marker file inside the output directory with basic statistics
     about the processing run.
     """
-    fns_path = os.path.join(output_dir, f"{session_name}.fns")
+    fns_path = os.path.join(output_dir, "a.fns")
     try:
         with open(fns_path, "w", encoding="utf-8") as f:
             f.write(
@@ -227,6 +229,7 @@ def _write_fns_marker(
         print(f"Created FNS marker: {fns_path}")
     except Exception as e:
         print(f"Warning: could not write .fns file: {e}")
+
 
 def process_images_to_individual_json(session_dir: str, drone_type: str | None = None) -> str:
     """
@@ -269,7 +272,7 @@ def process_images_to_individual_json(session_dir: str, drone_type: str | None =
     if not drone_type:
         drone_type = _read_drone_type_from_config(session_dir)
 
-    logger.info(f"=== Starting image batch processing ===")
+    logger.info("=== Starting image batch processing ===")
     logger.info(f"Session: {session_name} | Platform: {drone_type}")
     logger.info(f"Session dir: {session_dir}")
     logger.info(f"Output folders: success={output_dir}, failed={fail_output_dir}")
@@ -295,18 +298,45 @@ def process_images_to_individual_json(session_dir: str, drone_type: str | None =
             # Both "failed_missing" and "failed_exception" are counted as failed
             failed_extractions += 1
 
-    # Create .fns marker file inside output/
-    _write_fns_marker(
-        output_dir=output_dir,
-        session_name=session_name,
-        session_dir=session_dir,
-        total_images=total_images,
-        successful_extractions=successful_extractions,
-        failed_extractions=failed_extractions,
-    )
+    # Create .fns marker file inside EACH image folder (success and fail)
+    # The user requested 1 .fns file per folder of image processed.
+
+    # 1. Successful images
+    try:
+        if os.path.isdir(output_dir):
+            for item in os.listdir(output_dir):
+                sub_path = os.path.join(output_dir, item)
+                if os.path.isdir(sub_path):
+                    _write_fns_marker(
+                        output_dir=sub_path,
+                        session_name=session_name,
+                        session_dir=session_dir,
+                        total_images=total_images,
+                        successful_extractions=successful_extractions,
+                        failed_extractions=failed_extractions,
+                    )
+    except Exception as e:
+        logger.error(f"Failed to write .fns files in output_dir: {e}")
+
+    # 2. Failed images
+    try:
+        if os.path.isdir(fail_output_dir):
+            for item in os.listdir(fail_output_dir):
+                sub_path = os.path.join(fail_output_dir, item)
+                if os.path.isdir(sub_path):
+                    _write_fns_marker(
+                        output_dir=sub_path,
+                        session_name=session_name,
+                        session_dir=session_dir,
+                        total_images=total_images,
+                        successful_extractions=successful_extractions,
+                        failed_extractions=failed_extractions,
+                    )
+    except Exception as e:
+        logger.error(f"Failed to write .fns files in fail_output_dir: {e}")
 
     # Print summary statistics to the console
-    logger.info(f"=== Processing Complete ===")
+    logger.info("=== Processing Complete ===")
     logger.info(f"Total: {total_images} | Success: {successful_extractions} | Failed: {failed_extractions}")
     print("\nProcessing Statistics:")
     print(f"Total images processed: {total_images}")

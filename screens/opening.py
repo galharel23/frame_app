@@ -1,15 +1,15 @@
 # screens/opening.py
 from __future__ import annotations
-import flet as ft
+
 from pathlib import Path
 
-from consts import (LOGO_IMG, DRONE_IMG)
-from design_system import (PRIMARY, PRIMARY_HOVER, TEXT_PRIMARY, BG_DARK_1, BG_DARK_2, 
-                           SPACING_LG, BORDER_RADIUS_XL, TEXT_SECONDARY, ACCENT_PURPLE,
-                           SPACING_MD, SPACING_XL, ACCENT_GREEN)
+import flet as ft
+
+from consts import DRONE_IMG, LOGO_IMG
+from design_system import BORDER_RADIUS_XL, PRIMARY, SPACING_MD, SPACING_XL, TEXT_PRIMARY, TEXT_SECONDARY
+
 
 def build_opening_screen(on_start):
-
     # Animated title with gradient effect
     title = (
         ft.Image(src=LOGO_IMG, width=950, height=200, fit=ft.ImageFit.CONTAIN)
@@ -34,7 +34,7 @@ def build_opening_screen(on_start):
 
     # Subtitle with description
     subtitle = ft.Text(
-        "המרה חכמה של תמונות ללא תלות ברקע",
+        "המרה חכמה של תמונות",
         size=16,
         color=TEXT_SECONDARY,
         text_align=ft.TextAlign.CENTER,
@@ -51,7 +51,7 @@ def build_opening_screen(on_start):
         ],
         spacing=0,
         alignment=ft.MainAxisAlignment.CENTER,
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
     )
 
     # Animated drone image with container
@@ -61,11 +61,7 @@ def build_opening_screen(on_start):
         else ft.Text("התמונה Drone.gif לא נמצאה", color="#ff8a80")
     )
 
-    right = ft.Container(
-        content=right_content,
-        padding=ft.Padding(150, 20, 20, 20),
-        alignment=ft.alignment.center_left
-    )
+    right = ft.Container(content=right_content, padding=ft.Padding(150, 20, 20, 20), alignment=ft.alignment.center_left)
 
     return ft.Row(
         [
@@ -75,4 +71,3 @@ def build_opening_screen(on_start):
         expand=True,
         vertical_alignment=ft.CrossAxisAlignment.CENTER,
     )
-
