@@ -1,22 +1,22 @@
-import os
 import json
-from string import digits
-import subprocess
+import os
 import re
-from xml.etree import ElementTree as ET
-from pathlib import Path
-from shutil import which, copytree, ignore_patterns
+import subprocess
 import sys
+from pathlib import Path
+from shutil import copytree, which
+from xml.etree import ElementTree as ET
 
 from services.utils_service import to_float_rounded
 from utils.logging_service import get_logger
 
 logger = get_logger("exif_service")
 
+
 # ======= SOLUTION: Extract exiftool_files to AppData on startup =======
 def _ensure_exiftool_files_extracted():
-    """
-    Extract exiftool_files to AppData\Local\TekenFrame\exiftool_files 
+    r"""
+    Extract exiftool_files to AppData\Local\TekenFrame\exiftool_files
     This ensures files are accessible even if PyInstaller bundling fails.
     """
     try:
@@ -27,18 +27,18 @@ def _ensure_exiftool_files_extracted():
         except AttributeError:
             base_path = Path(__file__).resolve().parent.parent  # Regular execution
             logger.debug(f"Regular execution mode: {base_path}")
-        
+
         source_dir = base_path / "exiftool-13.30_64" / "exiftool_files"
-        
+
         # Destination in AppData
         appdata_local = Path.home() / "AppData" / "Local" / "TekenFrame"
         appdata_local.mkdir(parents=True, exist_ok=True)
         dest_dir = appdata_local / "exiftool_files"
-        
+
         logger.debug(f"Source: {source_dir}")
         logger.debug(f"Destination: {dest_dir}")
         logger.debug(f"Source exists: {source_dir.exists()}")
-        
+
         # Extract if not already there or if source is newer
         if not dest_dir.exists() and source_dir.exists():
             logger.info(f"Extracting exiftool_files to AppData: {dest_dir}")
@@ -55,12 +55,14 @@ def _ensure_exiftool_files_extracted():
         logger.error(f"Failed to extract exiftool_files: {e}")
         return None
 
+
 # Extract on module import
 EXIFTOOL_FILES_EXTRACTED = _ensure_exiftool_files_extracted()
 
 # -------------------------------
 # ExifTool resolution & wrapper
 # -------------------------------
+
 
 def resolve_exiftool_path():
     """
@@ -89,7 +91,9 @@ def resolve_exiftool_path():
 
     return None
 
+
 EXIFTOOL_PATH = resolve_exiftool_path()
+
 
 def run_exiftool(args):
     """
@@ -98,15 +102,32 @@ def run_exiftool(args):
     Falls back to exiftool.exe if perl not available.
     Raises exceptions if ExifTool not found or execution failed (check=True).
     """
+    global EXIFTOOL_PATH
+    if not EXIFTOOL_PATH:
+        # Try to resolve again (in case PATH was updated after import)
+        EXIFTOOL_PATH = resolve_exiftool_path()
+
+    if not EXIFTOOL_PATH:
+        # Make one last check specifically in the extracted AppData location
+        if EXIFTOOL_FILES_EXTRACTED:
+            candidates = [
+                EXIFTOOL_FILES_EXTRACTED / "exiftool.exe",
+                EXIFTOOL_FILES_EXTRACTED / "exiftool-13.30_64" / "exiftool.exe",
+            ]
+            for c in candidates:
+                if c.exists():
+                    EXIFTOOL_PATH = str(c)
+                    break
+
     if not EXIFTOOL_PATH:
         error_msg = "ExifTool not found. Update EXIFTOOL_PATH or ensure exiftool.exe exists."
         logger.error(error_msg)
         raise FileNotFoundError(error_msg)
-    
+
     # Set up environment with proper paths for ExifTool's Perl library
     env = os.environ.copy()
     exiftool_dir = os.path.dirname(EXIFTOOL_PATH)
-    
+
     # Use extracted exiftool_files from AppData (most reliable)
     # PyInstaller doesn't always bundle subdirectories completely, so extraction ensures all files are present
     if EXIFTOOL_FILES_EXTRACTED and EXIFTOOL_FILES_EXTRACTED.exists():
@@ -114,28 +135,28 @@ def run_exiftool(args):
         logger.debug(f"Using extracted exiftool_files from AppData: {exiftool_files_dir}")
     else:
         # Fallback to bundled version (may be incomplete)
-        exiftool_files_dir = os.path.join(exiftool_dir, 'exiftool_files')
+        exiftool_files_dir = os.path.join(exiftool_dir, "exiftool_files")
         logger.warning(f"Extraction failed, using bundled exiftool_files: {exiftool_files_dir}")
-    
-    lib_dir = os.path.join(exiftool_files_dir, 'lib')
-    
+
+    lib_dir = os.path.join(exiftool_files_dir, "lib")
+
     logger.debug(f"ExifTool dir: {exiftool_dir}")
     logger.debug(f"ExifTool files dir: {exiftool_files_dir}")
     logger.debug(f"Lib dir: {lib_dir}")
-    
+
     # Set PERL5LIB for Perl to find its libraries
     if os.path.isdir(lib_dir):
-        env['PERL5LIB'] = lib_dir
+        env["PERL5LIB"] = lib_dir
         logger.debug(f"Set PERL5LIB to: {lib_dir}")
     else:
         logger.warning(f"lib directory not found at: {lib_dir}")
-    
+
     # Add exiftool_files to PATH so perl5*.dll can be found
     if os.path.isdir(exiftool_files_dir):
-        path_dirs = env.get('PATH', '').split(os.pathsep)
+        path_dirs = env.get("PATH", "").split(os.pathsep)
         if exiftool_files_dir not in path_dirs:
             path_dirs.insert(0, exiftool_files_dir)
-            env['PATH'] = os.pathsep.join(path_dirs)
+            env["PATH"] = os.pathsep.join(path_dirs)
             logger.debug(f"Added to PATH: {exiftool_files_dir}")
             # Log what files are actually in that directory
             try:
@@ -145,11 +166,11 @@ def run_exiftool(args):
                 logger.error(f"Could not list files in {exiftool_files_dir}: {e}")
     else:
         logger.error(f"exiftool_files directory not found at: {exiftool_files_dir}")
-    
+
     # Try to use perl.exe from AppData with exiftool.pl (works when exe not available)
-    perl_exe = os.path.join(exiftool_files_dir, 'perl.exe')
-    exiftool_pl = os.path.join(exiftool_files_dir, 'exiftool.pl')
-    
+    perl_exe = os.path.join(exiftool_files_dir, "perl.exe")
+    exiftool_pl = os.path.join(exiftool_files_dir, "exiftool.pl")
+
     if os.path.isfile(perl_exe) and os.path.isfile(exiftool_pl):
         # Use perl + exiftool.pl from AppData (all dependencies in same directory)
         cmd = [perl_exe, exiftool_pl] + list(args)
@@ -157,10 +178,10 @@ def run_exiftool(args):
         logger.debug(f"Running: perl exiftool.pl {' '.join(args[:1])} ...")
     else:
         # Fall back to exiftool.exe from bundled location
-        logger.warning(f"perl.exe or exiftool.pl not found in AppData, using bundled exiftool.exe")
+        logger.warning("perl.exe or exiftool.pl not found in AppData, using bundled exiftool.exe")
         cmd = [EXIFTOOL_PATH] + list(args)
         logger.debug(f"Running ExifTool: {' '.join(cmd[:2])} ...")
-    
+
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True, env=env, cwd=exiftool_files_dir)
         logger.debug(f"✓ ExifTool success for: {args[0] if args else 'unknown'}")
@@ -169,9 +190,11 @@ def run_exiftool(args):
         logger.error(f"✗ ExifTool error: {e.stderr}")
         raise
 
+
 # -------------------------------
 # EXIF / XMP helpers
 # -------------------------------
+
 
 def get_decimal_from_dms(dms, ref):
     """
@@ -190,6 +213,7 @@ def get_decimal_from_dms(dms, ref):
     except Exception as e:
         print(f"Error converting DMS to decimal: {e}")
         return None
+
 
 def extract_gps_info_from_tags(tags):
     """
@@ -230,14 +254,13 @@ def extract_gps_info_from_tags(tags):
         logger.error(f"Error extracting GPS info: {e}")
         return None, None
 
+
 def extract_xmp_metadata(image_path):
     """Extract XMP metadata from image file"""
     try:
         with open(image_path, "rb") as f:
             jpeg_data = f.read()
-            xmp_match = re.search(
-                br"<x:xmpmeta[^>]*>.*?</x:xmpmeta>", jpeg_data, re.DOTALL
-            )
+            xmp_match = re.search(rb"<x:xmpmeta[^>]*>.*?</x:xmpmeta>", jpeg_data, re.DOTALL)
             if not xmp_match:
                 return None
 
@@ -252,21 +275,22 @@ def extract_xmp_metadata(image_path):
         print(f"Error extracting XMP metadata: {str(e)}")
         return None
 
+
 def get_los_fields(image_path, drone_type=None):
     """
     Extract gimbal angles/directions using ExifTool.
     Always returns dict with losAzimuth/losPitch/losRoll keys.
-    
+
     Args:
         image_path: Path to the image file
         drone_type: Type of drone (e.g., "Autel Alpha", "DJI M350 RTK", etc.)
     """
     logger.info(f"get_los_fields() - Processing: {image_path}, Drone: {drone_type}")
-    
+
     try:
         # Determine which EXIF fields to query based on drone type
-        is_autel = drone_type and any(keyword in drone_type.lower() for keyword in ['autel', 'evo'])
-        
+        is_autel = drone_type and any(keyword in drone_type.lower() for keyword in ["autel", "evo"])
+
         if is_autel:
             logger.debug("Detected Autel drone - using Autel field names")
             # Autel drones use different field names
@@ -291,30 +315,14 @@ def get_los_fields(image_path, drone_type=None):
             )
             data = json.loads(cp.stdout)[0] if cp.stdout else {}
             logger.debug(f"Autel ExifTool response: {list(data.keys())}")
-            
+
             # Try multiple field name variations for Autel
-            yaw = (
-                data.get("Yaw") or 
-                data.get("XMP:Yaw") or
-                data.get("CameraYaw") or 
-                data.get("FlightYawDegree") or
-                0.0
-            )
+            yaw = data.get("Yaw") or data.get("XMP:Yaw") or data.get("CameraYaw") or data.get("FlightYawDegree") or 0.0
             pitch = (
-                data.get("Pitch") or 
-                data.get("XMP:Pitch") or
-                data.get("CameraPitch") or 
-                data.get("FlightPitchDegree") or
-                0.0
+                data.get("Pitch") or data.get("XMP:Pitch") or data.get("CameraPitch") or data.get("FlightPitchDegree") or 0.0
             )
-            roll = (
-                data.get("Roll") or 
-                data.get("XMP:Roll") or
-                data.get("CameraRoll") or 
-                data.get("FlightRollDegree") or
-                0.0
-            )
-            
+            roll = data.get("Roll") or data.get("XMP:Roll") or data.get("CameraRoll") or data.get("FlightRollDegree") or 0.0
+
             return {
                 "losAzimuth": to_float_rounded(yaw, digits=4),
                 "losPitch": to_float_rounded(pitch, digits=4),
@@ -341,9 +349,11 @@ def get_los_fields(image_path, drone_type=None):
                 "losPitch": to_float_rounded(data.get("GimbalPitchDegree"), digits=4),
                 "losRoll": to_float_rounded(data.get("GimbalRollDegree"), digits=4),
             }
-            logger.info(f"✓ LOS fields extracted: Azimuth={result['losAzimuth']}, Pitch={result['losPitch']}, Roll={result['losRoll']}")
+            logger.info(
+                f"✓ LOS fields extracted: Azimuth={result['losAzimuth']}, Pitch={result['losPitch']}, Roll={result['losRoll']}"
+            )
             return result
-            
+
     except FileNotFoundError as e:
         logger.error(f"ExifTool not found: {e}")
         return {"losAzimuth": 0.0, "losPitch": 0.0, "losRoll": 0.0}
@@ -353,6 +363,7 @@ def get_los_fields(image_path, drone_type=None):
     except Exception as e:
         logger.error(f"Could not extract LOS fields: {e}")
         return {"losAzimuth": 0.0, "losPitch": 0.0, "losRoll": 0.0}
+
 
 def extract_relative_altitude(image_path):
     """
@@ -366,7 +377,7 @@ def extract_relative_altitude(image_path):
     desc = xmp_root.find(".//rdf:Description", ns)
     if desc is None:
         return 0.0
-    
+
     # Try DJI RelativeAltitude first
     val = desc.attrib.get(f"{{{ns['drone-dji']}}}RelativeAltitude")
     if val is not None:
@@ -374,14 +385,14 @@ def extract_relative_altitude(image_path):
             return float(val.lstrip("+"))
         except ValueError:
             pass
-    
+
     # Try Autel AboveGroundAltitude
     # Check all attributes for AboveGroundAltitude (namespace might vary)
     for attr_name, attr_val in desc.attrib.items():
-        if 'AboveGroundAltitude' in attr_name:
+        if "AboveGroundAltitude" in attr_name:
             try:
                 return float(attr_val)
             except ValueError:
                 pass
-    
+
     return 0.0
