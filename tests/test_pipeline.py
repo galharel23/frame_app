@@ -510,6 +510,47 @@ class TestRunWhiteningIntegration:
 
     @patch("utils.pipeline.process_images_to_individual_json")
     @patch("utils.pipeline.prepare_data_for_qgis")
+    def test_run_whitening_writes_quality_filter_to_config(self, mock_qgis, mock_process, tmp_path):
+        test_image = tmp_path / "test.jpg"
+        test_image.touch()
+
+        def mock_process_side_effect(session_dir, drone_type):
+            config_path = os.path.join(session_dir, "config.json")
+            assert os.path.exists(config_path)
+            with open(config_path, "r", encoding="utf-8") as f:
+                config = json.load(f)
+            assert config["quality_filter"]["min_relative_altitude"] == 200.0
+            assert config["quality_filter"]["allow_wide"] is True
+            assert config["quality_filter"]["allow_zoom"] is False
+
+            output_dir = os.path.join(session_dir, "output")
+            to_qgis_dir = os.path.join(session_dir, "TO_QGIS")
+            os.makedirs(output_dir, exist_ok=True)
+            os.makedirs(to_qgis_dir, exist_ok=True)
+            with open(os.path.join(to_qgis_dir, "test.json"), "w", encoding="utf-8") as f:
+                json.dump({}, f)
+            return session_dir
+
+        mock_process.side_effect = mock_process_side_effect
+
+        run_whitening(
+            [str(test_image)],
+            drone_type="DJI",
+            skip_log=True,
+            quality_filter={
+                "blur_threshold": 5.0,
+                "min_relative_altitude": 200.0,
+                "max_relative_altitude": 5000.0,
+                "allow_thermal": True,
+                "allow_visible": True,
+                "allow_zoom": False,
+                "allow_wide": True,
+            },
+        )
+        mock_process.assert_called_once()
+
+    @patch("utils.pipeline.process_images_to_individual_json")
+    @patch("utils.pipeline.prepare_data_for_qgis")
     def test_run_whitening_creates_zip(self, mock_qgis, mock_process, tmp_path):
         """Test that ZIP file is created."""
         test_image = tmp_path / "test.jpg"

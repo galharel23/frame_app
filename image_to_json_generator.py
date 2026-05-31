@@ -1,12 +1,14 @@
 import json
 import os
+import re
 import shutil
 
+from PIL import Image, ImageFilter, ImageStat
 import exifread
 
 from services.exif_service import extract_gps_info_from_tags, extract_relative_altitude, get_los_fields
 from services.full_metadata_service import generate_full_metadata_json
-from services.json_builders_service import build_json_structure
+from services.json_builders_service import build_json_structure, classify_sensor_type_from_name
 from utils.logging_service import get_logger
 
 logger = get_logger(__name__)
@@ -46,6 +48,172 @@ def _ensure_output_dirs(session_dir: str) -> tuple[str, str]:
     return output_dir, fail_output_dir
 
 
+def _ensure_quality_dirs(session_dir: str) -> tuple[str, str]:
+    """
+    Ensure that GOOD_IMAGES/ and BAD_IMAGES/ directories exist inside the session directory.
+    """
+    good_dir = os.path.join(session_dir, "GOOD_IMAGES")
+    bad_dir = os.path.join(session_dir, "BAD_IMAGES")
+    os.makedirs(good_dir, exist_ok=True)
+    os.makedirs(bad_dir, exist_ok=True)
+    return good_dir, bad_dir
+
+
+def _load_quality_filter_config(session_dir: str) -> dict:
+    """
+    Read optional quality filter settings from config.json.
+    """
+    cfg_path = os.path.join(session_dir, "config.json")
+    defaults = {
+        "blur_threshold": 10.0,
+        "min_relative_altitude": 3.0,
+        "max_relative_altitude": 500.0,
+        "allow_thermal": True,
+        "allow_visible": True,
+        "allow_zoom": True,
+        "allow_wide": True,
+    }
+    try:
+        if os.path.exists(cfg_path):
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+                quality = cfg.get("quality_filter", {}) or {}
+                defaults["blur_threshold"] = float(quality.get("blur_threshold", defaults["blur_threshold"]))
+                defaults["min_relative_altitude"] = float(quality.get("min_relative_altitude", defaults["min_relative_altitude"]))
+                defaults["max_relative_altitude"] = float(quality.get("max_relative_altitude", defaults["max_relative_altitude"]))
+                defaults["allow_thermal"] = bool(quality.get("allow_thermal", defaults["allow_thermal"]))
+                defaults["allow_visible"] = bool(quality.get("allow_visible", defaults["allow_visible"]))
+                defaults["allow_zoom"] = bool(quality.get("allow_zoom", defaults["allow_zoom"]))
+                defaults["allow_wide"] = bool(quality.get("allow_wide", defaults["allow_wide"]))
+    except Exception as e:
+        logger.warning(f"Could not read quality filter settings from config.json: {e}")
+    return defaults
+
+
+def _get_image_altitude(tags: dict, relative_alt: float) -> float:
+    """
+    Return the best available height estimate for quality filtering.
+    """
+    if relative_alt and relative_alt != 0.0:
+        return relative_alt
+    try:
+        gps_alt = float(str(tags.get("GPS GPSAltitude", "0")))
+        return gps_alt
+    except Exception:
+        return 0.0
+
+
+def _get_sensor_suffix(filename: str) -> str:
+    """Extract the suffix letter from the image filename, e.g. _T, _Z, _W."""
+    base = os.path.splitext(os.path.basename(filename))[0]
+    match = re.search(r"_([A-Za-z])$", base)
+    return match.group(1).upper() if match else ""
+
+
+def _compute_blur_score(image_path: str) -> float:
+    """
+    Estimate image sharpness using edge contrast. Lower scores indicate a blurrier image.
+    """
+    try:
+        with Image.open(image_path) as img:
+            gray = img.convert("L")
+            gray = gray.resize((320, 320))
+            edges = gray.filter(ImageFilter.FIND_EDGES)
+            stats = ImageStat.Stat(edges)
+            return float(stats.mean[0])
+    except Exception as e:
+        logger.warning(f"Could not compute blur score for {image_path}: {e}")
+        return 0.0
+
+
+def _classify_image_quality(
+    filename: str,
+    full_path: str,
+    tags: dict,
+    relative_alt: float,
+    los_fields: dict,
+    session_dir: str,
+    quality_config: dict,
+) -> tuple[str, dict]:
+    """
+    Classify the image as GOOD or BAD based on quality criteria.
+    """
+    sensor_type = classify_sensor_type_from_name(filename)
+    sensor_suffix = _get_sensor_suffix(filename)
+    is_thermal = sensor_type.upper() == "IR"
+    altitude = _get_image_altitude(tags, relative_alt)
+    blur_score = _compute_blur_score(full_path)
+
+    reasons = []
+    if blur_score < quality_config["blur_threshold"]:
+        reasons.append("blurred image")
+    if altitude < quality_config["min_relative_altitude"]:
+        reasons.append("altitude below threshold")
+    if altitude > quality_config["max_relative_altitude"]:
+        reasons.append("altitude above threshold")
+
+    if sensor_suffix == "T" and not quality_config.get("allow_thermal", True):
+        reasons.append("thermal images are excluded")
+    elif sensor_suffix == "Z" and not quality_config.get("allow_zoom", True):
+        reasons.append("zoom images are excluded")
+    elif sensor_suffix == "W" and not quality_config.get("allow_wide", True):
+        reasons.append("wide images are excluded")
+    elif sensor_suffix not in {"T", "Z", "W"} and not quality_config.get("allow_visible", True):
+        reasons.append("visible images are excluded")
+
+    # Images with missing critical fields should be treated as bad.
+    if los_fields.get("losAzimuth", 0.0) == 0.0 or los_fields.get("losPitch", 0.0) == 0.0 or relative_alt == 0.0:
+        reasons.append("missing critical flight metadata")
+
+    classification = "good" if not reasons else "bad"
+    quality_data = {
+        "classification": classification,
+        "sensorType": sensor_type,
+        "sensorSuffix": sensor_suffix,
+        "isThermal": is_thermal,
+        "blurScore": round(blur_score, 2),
+        "altitude": round(altitude, 2),
+        "blurThreshold": quality_config.get("blur_threshold", 10.0),
+        "minRelativeAltitude": quality_config.get("min_relative_altitude", 3.0),
+        "maxRelativeAltitude": quality_config.get("max_relative_altitude", 500.0),
+        "allowThermal": quality_config.get("allow_thermal", True),
+        "allowVisible": quality_config.get("allow_visible", True),
+        "allowZoom": quality_config.get("allow_zoom", True),
+        "allowWide": quality_config.get("allow_wide", True),
+        "reasons": reasons,
+    }
+    return classification, quality_data
+
+
+def _copy_to_quality_dir(
+    session_dir: str,
+    filename: str,
+    full_path: str,
+    json_data: dict,
+    classification: str,
+) -> None:
+    """
+    Copy the image and its JSON metadata into the GOOD_IMAGES or BAD_IMAGES folder.
+    """
+    good_dir, bad_dir = _ensure_quality_dirs(session_dir)
+    target_dir = good_dir if classification == "good" else bad_dir
+    os.makedirs(target_dir, exist_ok=True)
+
+    base_name = os.path.splitext(filename)[0]
+    target_image_path = os.path.join(target_dir, filename)
+    target_json_path = os.path.join(target_dir, f"{base_name}.json")
+
+    try:
+        shutil.copy2(full_path, target_image_path)
+    except Exception:
+        pass
+
+    try:
+        _write_json(target_json_path, json_data)
+    except Exception as e:
+        logger.warning(f"Could not write quality JSON for {filename}: {e}")
+
+
 def _iter_session_images(session_dir: str):
     """
     Iterate over image filenames in the session directory.
@@ -81,6 +249,8 @@ def _process_single_image(
     output_dir: str,
     fail_output_dir: str,
     drone_type: str,
+    session_dir: str,
+    quality_config: dict,
 ) -> str:
     """
     Process a single image:
@@ -136,6 +306,21 @@ def _process_single_image(
             full_path,
             drone_type,
         )
+
+        # Add quality metadata and classification
+        classification, quality_data = _classify_image_quality(
+            filename=filename,
+            full_path=full_path,
+            tags=tags,
+            relative_alt=relative_alt,
+            los_fields=los_fields,
+            session_dir=session_dir,
+            quality_config=quality_config,
+        )
+        json_data["QualityControl"] = quality_data
+
+        # Save a copy into the quality folders as well
+        _copy_to_quality_dir(session_dir, filename, full_path, json_data, classification)
 
         # Decide which folder to use for the JSON output
         if has_los_fields and has_relative_alt:
@@ -193,6 +378,20 @@ def _process_single_image(
                 full_path,
                 drone_type,
             )
+            json_data["QualityControl"] = {
+                "classification": "bad",
+                "sensorType": classify_sensor_type_from_name(filename),
+                "isThermal": classify_sensor_type_from_name(filename).upper() == "IR",
+                "blurScore": 0.0,
+                "altitude": 0.0,
+                "blurThreshold": quality_config.get("blur_threshold", 10.0),
+                "minRelativeAltitude": quality_config.get("min_relative_altitude", 3.0),
+                "maxRelativeAltitude": quality_config.get("max_relative_altitude", 500.0),
+                "allowThermal": quality_config.get("allow_thermal", True),
+                "allowVisible": quality_config.get("allow_visible", True),
+                "reasons": ["exception during processing"],
+            }
+            _copy_to_quality_dir(session_dir, filename, full_path, json_data, "bad")
             fallback_path = os.path.join(
                 fail_output_dir,
                 f"{os.path.splitext(filename)[0]}.json",
@@ -267,6 +466,8 @@ def process_images_to_individual_json(session_dir: str, drone_type: str | None =
 
     # Output folders
     output_dir, fail_output_dir = _ensure_output_dirs(session_dir)
+    good_images_dir, bad_images_dir = _ensure_quality_dirs(session_dir)
+    quality_config = _load_quality_filter_config(session_dir)
 
     # Platform name (drone_type) from config.json if not provided explicitly
     if not drone_type:
@@ -290,6 +491,8 @@ def process_images_to_individual_json(session_dir: str, drone_type: str | None =
             output_dir=output_dir,
             fail_output_dir=fail_output_dir,
             drone_type=drone_type,
+            session_dir=session_dir,
+            quality_config=quality_config,
         )
 
         if status == "success":
@@ -344,6 +547,8 @@ def process_images_to_individual_json(session_dir: str, drone_type: str | None =
     print(f"Failed or missing critical fields: {failed_extractions}")
     print(f"\nSuccessful extractions saved to: {output_dir}")
     print(f"Failed extractions saved to: {fail_output_dir}")
+    print(f"Good image classification saved to: {good_images_dir}")
+    print(f"Bad image classification saved to: {bad_images_dir}")
 
     # Second JSON: full metadata for each image (ExifTool -json output)
     try:

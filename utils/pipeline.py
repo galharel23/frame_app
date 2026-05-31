@@ -66,6 +66,7 @@ def run_whitening(
     drone_type: str,
     log_path: str | None = None,
     skip_log: bool = False,
+    quality_filter: dict | None = None,
 ) -> Dict:
     """
     1) Create a session folder named date-time
@@ -73,6 +74,13 @@ def run_whitening(
     3) Run processing on the session folder itself
     4) Prepare TO_QGIS + ZIP
     5) Return an object for display on the results screen
+
+    Args:
+        selected_paths: Local file paths or directories to include in the session.
+        drone_type: Drone type selected by the user.
+        log_path: Optional log file path (currently unused in the UI).
+        skip_log: Whether to skip log processing.
+        quality_filter: Optional quality filter settings to save in config.json.
     """
     # 1) Session folder
     session_dir, session_name = _create_session_dir()
@@ -95,6 +103,8 @@ def run_whitening(
     # 3) כתיבת config.json בתוך תיקיית הסשן
     try:
         cfg = {"drone_type": drone_type, "log_path": log_path, "skip_log": bool(skip_log)}
+        if quality_filter is not None:
+            cfg["quality_filter"] = quality_filter
         with open(os.path.join(session_dir, "config.json"), "w", encoding="utf-8") as f:
             json.dump(cfg, f, ensure_ascii=False, indent=2)
     except Exception:

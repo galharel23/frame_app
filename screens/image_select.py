@@ -39,10 +39,11 @@ def _ltr(s: str) -> str:
     return f"{_LRM}{s}{_LRM}"
 
 
-def build_image_select_screen(page: ft.Page, on_back=None):
+def build_image_select_screen(page: ft.Page, on_back=None, initial_files=None, initial_drone=None):
     # --- Global layout direction ---
     page.rtl = True
     page.appbar = None
+    page.overlay.clear()
 
     # --- State ---
     selected_drone = ft.Dropdown(
@@ -56,15 +57,15 @@ def build_image_select_screen(page: ft.Page, on_back=None):
         hint_text="בחרו את הדגם",
         autofocus=True,
         width=320,
-        value="DJI M350 RTK",  # ברירת מחדל
+        value=initial_drone or "DJI M350 RTK",  # ברירת מחדל
     )
 
     # 🔻 LOG selection is now disabled – no log file used in the flow
     # log_file = {"path": None}
     # selected_log_path = ft.Text("לא נבחר קובץ log", color="#9aa0a6", size=13)
 
-    selected_files: Set[str] = set()
-    files_counter = ft.Text("נבחרו 0 קבצי תמונה", size=14, color=TEXT_SECONDARY)
+    selected_files: Set[str] = set(initial_files or [])
+    files_counter = ft.Text(f"נבחרו {len(selected_files)} קבצי תמונה", size=14, color=TEXT_SECONDARY)
 
     # error msg
     error_text = ft.Text("", color=ERROR, size=13)
@@ -223,97 +224,244 @@ def build_image_select_screen(page: ft.Page, on_back=None):
         ),
     )
 
-    async def on_submit_clicked(e):
+    def on_next_clicked(e):
         # Basic validation
         problems = []
         if not selected_drone.value:
             problems.append("• לא נבחר סוג רחפן")
         if len(selected_files) == 0:
             problems.append("• לא נבחרו תמונות")
-        # 🔻 Removed log validations:
-        # if (not no_log_cb.value) and (not log_file["path"]):
-        #     problems.append("• יש לבחור קובץ log או לסמן 'אין קובץ לוג (דלג)'")
 
         if problems:
             error_text.value = "\n".join(problems)
             page.update()
             return
-        else:
-            error_text.value = ""
-            page.update()
-
-        # Progress dialog + button loading state
-        page.dialog = progress_dlg
-        progress_dlg.open = True
-        set_button_loading(True)
-        page.update()
-
-        try:
-            # Run whitening in background thread so the UI stays responsive
-            result = await asyncio.to_thread(
-                run_whitening,
-                list(selected_files),
-                selected_drone.value,
-                None,   # 🔻 no log file is used
-                True,   # 🔻 "skip log" flag – adjust if your signature changes
-            )
-        except Exception as err:
-            progress_dlg.open = False
-            set_button_loading(False)
-            page.update()
-            error_text.value = f"שגיאה בעיבוד: {err}"
-            page.update()
-            return
-        finally:
-            progress_dlg.open = False
-
-        # On success – go to results screen
-        set_button_loading(False)
-        page.update()
-
-        def back_to_select(_):
-            page.controls.clear()
-            page.add(build_image_select_screen(page, on_back=on_back))
-            page.update()
 
         page.controls.clear()
-        from screens.results import build_results_screen
-        # Wrap async on_back if needed
-        def on_media_type_btn(e=None):
-            if on_back:
-                if asyncio.iscoroutinefunction(on_back):
-                    asyncio.create_task(on_back(e))
-                else:
-                    on_back(e)
-        page.add(build_results_screen(page, result, on_again=back_to_select, on_media_type=on_media_type_btn))
+        page.add(build_image_filter_screen(
+            page,
+            selected_files=list(selected_files),
+            selected_drone=selected_drone.value,
+            on_back=on_back,
+        ))
         page.update()
 
-    submit_btn = ft.ElevatedButton(
-        "שלח להלבנה",
+    next_btn = ft.ElevatedButton(
+        "הבא: הגדר סינון",
         bgcolor=PRIMARY,
         color=TEXT_PRIMARY,
         style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
-        on_click=on_submit_clicked,
+        on_click=on_next_clicked,
     )
+
+    def build_image_filter_screen(page: ft.Page, selected_files: list[str], selected_drone: str, on_back=None):
+        page.rtl = True
+        page.appbar = None
+
+        selected_count = len(selected_files)
+        selected_label = ft.Text(
+            f"סינון {selected_count} תמונות שנבחרו עבור {selected_drone}",
+            size=16,
+            color=TEXT_PRIMARY,
+        )
+
+        filter_description = ft.Text(
+            "בחרו את הקריטריונים לעיבוד הסופי:",
+            size=13,
+            color=TEXT_SECONDARY,
+        )
+
+        sensor_type_picker = ft.Dropdown(
+            label="בחר סוג תמונה לעיבוד",
+            options=[
+                ft.dropdown.Option("W"),
+                ft.dropdown.Option("Z"),
+                ft.dropdown.Option("T"),
+            ],
+            value="W",
+            width=360,
+            hint_text="בחר סוג תמונה",
+        )
+
+        min_altitude_field = ft.TextField(
+            label="גובה מינימלי (מטר)",
+            value="200",
+            width=240,
+            keyboard_type=ft.KeyboardType.NUMBER,
+        )
+        max_altitude_field = ft.TextField(
+            label="גובה מרבי (מטר)",
+            value="5000",
+            width=240,
+            keyboard_type=ft.KeyboardType.NUMBER,
+        )
+
+        error_text = ft.Text("", color=ERROR, size=13)
+
+        progress_dlg = ft.AlertDialog(
+            modal=True,
+            content=ft.Column(
+                [ft.ProgressRing(), ft.Text("מריץ עיבוד...", size=16)],
+                tight=True,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=16,
+            ),
+        )
+
+        async def on_process_clicked(e):
+            problems = []
+            if selected_count == 0:
+                problems.append("• לא נבחרו תמונות לעיבוד")
+            if not sensor_type_picker.value:
+                problems.append("• יש לבחור לפחות סוג תמונה אחד לסינון")
+
+            try:
+                min_altitude = float(min_altitude_field.value or "0")
+            except Exception:
+                problems.append("• יש להזין גובה מינימלי תקין")
+                min_altitude = 0.0
+
+            try:
+                max_altitude = float(max_altitude_field.value or "0")
+            except Exception:
+                problems.append("• יש להזין גובה מרבי תקין")
+                max_altitude = 0.0
+
+            if min_altitude < 0:
+                problems.append("• הגובה המינימלי חייב להיות חיובי")
+            if max_altitude > 0 and max_altitude < min_altitude:
+                problems.append("• הגובה המרבי חייב להיות גדול מהגובה המינימלי")
+
+            if problems:
+                error_text.value = "\n".join(problems)
+                page.update()
+                return
+
+            page.dialog = progress_dlg
+            progress_dlg.open = True
+            page.update()
+
+            try:
+                result = await asyncio.to_thread(
+                    run_whitening,
+                    selected_files,
+                    selected_drone,
+                    None,
+                    True,
+                    {
+                        "blur_threshold": 10.0,
+                        "min_relative_altitude": min_altitude,
+                        "max_relative_altitude": max_altitude,
+                        "allow_thermal": sensor_type_picker.value == "T",
+                        "allow_visible": sensor_type_picker.value in ["W", "Z"],
+                        "allow_zoom": sensor_type_picker.value == "Z",
+                        "allow_wide": sensor_type_picker.value == "W",
+                    },
+                )
+            except Exception as err:
+                progress_dlg.open = False
+                error_text.value = f"שגיאה בעיבוד: {err}"
+                page.update()
+                return
+            finally:
+                progress_dlg.open = False
+
+            page.controls.clear()
+            def on_media_type_btn(e=None):
+                if on_back:
+                    if asyncio.iscoroutinefunction(on_back):
+                        asyncio.create_task(on_back(e))
+                    else:
+                        on_back(e)
+            page.add(build_results_screen(page, result, on_again=back_to_select, on_media_type=on_media_type_btn))
+            page.update()
+
+        process_btn = ft.ElevatedButton(
+            "עיבוד תמונות",
+            bgcolor=PRIMARY,
+            color=TEXT_PRIMARY,
+            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
+            width=260,
+            on_click=on_process_clicked,
+        )
+
+        def back_to_select(_):
+            page.controls.clear()
+            page.add(build_image_select_screen(
+                page,
+                on_back=on_back,
+                initial_files=selected_files,
+                initial_drone=selected_drone,
+            ))
+            page.update()
+
+        screen_title = ft.Text(
+            "הגדרות סינון לעיבוד",
+            size=28,
+            weight=ft.FontWeight.BOLD,
+            color=TEXT_PRIMARY,
+        )
+        screen_subtitle = ft.Text(
+            "בחרו אילו סוגי תמונות לעבד ואיזה טווח גובה לשמור.",
+            size=14,
+            color=TEXT_TERTIARY,
+        )
+
+        filter_controls = ft.Column(
+            [
+                screen_title,
+                screen_subtitle,
+                ft.Divider(opacity=0.15),
+                selected_label,
+                filter_description,
+                sensor_type_picker,
+                ft.Row([min_altitude_field, max_altitude_field], spacing=16),
+                ft.Container(height=8),
+                process_btn,
+                error_text,
+            ],
+            spacing=18,
+            width=720,
+            horizontal_alignment=ft.CrossAxisAlignment.START,
+        )
+
+        back_btn = ft.TextButton(
+            "חזרה לבחירת תמונות",
+            icon=ft.Icons.ARROW_BACK,
+            on_click=back_to_select,
+            style=ft.ButtonStyle(
+                padding=ft.Padding(12, 8, 12, 8),
+                shape=ft.RoundedRectangleBorder(radius=8),
+            ),
+        )
+
+        return ft.Column(
+            controls=[
+                ft.Container(content=back_btn, alignment=ft.alignment.top_right, padding=ft.Padding(0, 16, 16, 0)),
+                ft.Container(expand=True, alignment=ft.alignment.center, content=ft.Card(content=ft.Container(padding=24, content=filter_controls))),
+            ],
+            expand=True,
+        )
 
     # --- Helper: button loading state ---
     def set_button_loading(is_loading: bool):
         if is_loading:
-            submit_btn.disabled = True
-            submit_btn.content = ft.Row(
+            next_btn.disabled = True
+            next_btn.content = ft.Row(
                 [
                     ft.ProgressRing(width=16, height=16),
-                    ft.Text("מעבד...", color="white"),
+                    ft.Text("טוען...", color="white"),
                 ],
                 spacing=8,
                 alignment=ft.MainAxisAlignment.CENTER,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
             )
-            submit_btn.text = None
+            next_btn.text = None
         else:
-            submit_btn.disabled = False
-            submit_btn.content = None
-            submit_btn.text = "שלח להלבנה"
+            next_btn.disabled = False
+            next_btn.content = None
+            next_btn.text = "הבא: הגדר סינון"
         page.update()
 
     # ---- Back button (top-right) ----
@@ -392,7 +540,7 @@ def build_image_select_screen(page: ft.Page, on_back=None):
             ft.Row([files_counter], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             drop_area,
             ft.Container(height=6),
-            ft.Row([submit_btn], alignment=ft.MainAxisAlignment.CENTER),
+            ft.Row([next_btn], alignment=ft.MainAxisAlignment.CENTER),
             ft.Row([error_text], alignment=ft.MainAxisAlignment.CENTER),
         ],
         spacing=12,
