@@ -338,6 +338,17 @@ def build_image_select_screen(page: ft.Page, on_back=None, initial_files=None, i
                 page.update()
                 return
 
+            process_btn.disabled = True
+            process_btn.text = None
+            process_btn.content = ft.Row(
+                [
+                    ft.ProgressRing(width=18, height=18),
+                    ft.Text("מעבד תמונות...", color=TEXT_PRIMARY),
+                ],
+                spacing=10,
+                alignment=ft.MainAxisAlignment.CENTER,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            )
             page.dialog = progress_dlg
             progress_dlg.open = True
             page.update()
@@ -361,11 +372,17 @@ def build_image_select_screen(page: ft.Page, on_back=None, initial_files=None, i
                 )
             except Exception as err:
                 progress_dlg.open = False
+                process_btn.disabled = False
+                process_btn.content = None
+                process_btn.text = "עיבוד תמונות"
                 error_text.value = f"שגיאה בעיבוד: {err}"
                 page.update()
                 return
             finally:
                 progress_dlg.open = False
+                process_btn.disabled = False
+                process_btn.content = None
+                process_btn.text = "עיבוד תמונות"
 
             page.controls.clear()
             def on_media_type_btn(e=None):
