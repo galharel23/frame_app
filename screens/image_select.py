@@ -139,6 +139,8 @@ def build_image_select_screen(page: ft.Page, on_back=None, initial_files=None, i
         padding=10,
     )
 
+    next_btn = None
+
     def refresh_files_ui():
         count = len(selected_files)
         files_counter.value = f"נבחרו {count} קבצי תמונה"
@@ -150,6 +152,10 @@ def build_image_select_screen(page: ft.Page, on_back=None, initial_files=None, i
             drop_area.content = drop_list
         else:
             drop_area.content = placeholder_text
+
+        if next_btn is not None:
+            next_btn.disabled = count == 0
+
         page.update()
 
     # --- Drag & Drop מכל האפליקציה ---
@@ -226,6 +232,7 @@ def build_image_select_screen(page: ft.Page, on_back=None, initial_files=None, i
 
     def on_next_clicked(e):
         # Basic validation
+        error_text.value = ""
         problems = []
         if not selected_drone.value:
             problems.append("• לא נבחר סוג רחפן")
@@ -237,14 +244,18 @@ def build_image_select_screen(page: ft.Page, on_back=None, initial_files=None, i
             page.update()
             return
 
-        page.controls.clear()
-        page.add(build_image_filter_screen(
-            page,
-            selected_files=list(selected_files),
-            selected_drone=selected_drone.value,
-            on_back=on_back,
-        ))
-        page.update()
+        try:
+            page.controls.clear()
+            page.add(build_image_filter_screen(
+                page,
+                selected_files=list(selected_files),
+                selected_drone=selected_drone.value,
+                on_back=on_back,
+            ))
+        except Exception as err:
+            error_text.value = f"שגיאה בפתיחת מסך הסינון: {err}"
+        finally:
+            page.update()
 
     next_btn = ft.ElevatedButton(
         "הבא: הגדר סינון",
@@ -253,21 +264,35 @@ def build_image_select_screen(page: ft.Page, on_back=None, initial_files=None, i
         style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
         on_click=on_next_clicked,
     )
+    refresh_files_ui()
 
     def build_image_filter_screen(page: ft.Page, selected_files: list[str], selected_drone: str, on_back=None):
         page.rtl = True
         page.appbar = None
 
+        screen_title = ft.Text(
+            "הגדרות סינון לעיבוד",
+            size=20,
+            weight=ft.FontWeight.BOLD,
+            color=TEXT_PRIMARY,
+        )
+        screen_subtitle = ft.Text(
+            "בחרו אילו סוגי תמונות לעבד ואיזה טווח גובה לשמור.",
+            size=11,
+            color=TEXT_TERTIARY,
+        )
+
         selected_count = len(selected_files)
+        
         selected_label = ft.Text(
             f"סינון {selected_count} תמונות שנבחרו עבור {selected_drone}",
-            size=16,
+            size=12,
             color=TEXT_PRIMARY,
         )
 
         filter_description = ft.Text(
             "בחרו את הקריטריונים לעיבוד הסופי:",
-            size=13,
+            size=11,
             color=TEXT_SECONDARY,
         )
 
@@ -279,29 +304,113 @@ def build_image_select_screen(page: ft.Page, on_back=None, initial_files=None, i
                 ft.dropdown.Option("T"),
             ],
             value="W",
-            width=360,
+            width=180,
             hint_text="בחר סוג תמונה",
         )
 
         min_altitude_field = ft.TextField(
             label="גובה מינימלי (מטר)",
             value="200",
-            width=240,
+            width=170,
             keyboard_type=ft.KeyboardType.NUMBER,
         )
         max_altitude_field = ft.TextField(
             label="גובה מרבי (מטר)",
             value="5000",
-            width=240,
+            width=170,
             keyboard_type=ft.KeyboardType.NUMBER,
         )
 
-        error_text = ft.Text("", color=ERROR, size=13)
+        # Quality filter section
+        quality_filter_enabled_cb = ft.Checkbox(
+            label="להפעיל סינון איכות תמונות",
+            value=True,
+            width=280,
+        )
+
+        quality_filter_title = ft.Text(
+            "הגדרות סינון איכות",
+            size=12,
+            weight=ft.FontWeight.BOLD,
+            color=TEXT_PRIMARY,
+        )
+
+        # Distance between images
+        min_distance_field = ft.TextField(
+            label="מרחק מינימלי בין תמונות (מטר)",
+            value="200.0",
+            width=170,
+            keyboard_type=ft.KeyboardType.NUMBER,
+        )
+
+        # Speed
+        max_speed_field = ft.TextField(
+            label="מהירות רחפן מקסימלית (m/s)",
+            value="5.0",
+            width=170,
+            keyboard_type=ft.KeyboardType.NUMBER,
+        )
+
+        # Digital zoom
+        max_zoom_field = ft.TextField(
+            label="זום דיגיטלי מקסימלי",
+            value="1.0",
+            width=170,
+            keyboard_type=ft.KeyboardType.NUMBER,
+        )
+
+        # Blur score
+        min_blur_field = ft.TextField(
+            label="Blur score מינימלי",
+            value="500.0",
+            width=170,
+            keyboard_type=ft.KeyboardType.NUMBER,
+        )
+
+        # Image dimensions
+        min_width_field = ft.TextField(
+            label="רוחב תמונה מינימלי (פיקסל)",
+            value="3000",
+            width=170,
+            keyboard_type=ft.KeyboardType.NUMBER,
+        )
+
+        min_height_field = ft.TextField(
+            label="גובה תמונה מינימלי (פיקסל)",
+            value="2000",
+            width=170,
+            keyboard_type=ft.KeyboardType.NUMBER,
+        )
+
+        # ISO
+        max_iso_field = ft.TextField(
+            label="ISO מקסימלי",
+            value="1600",
+            width=170,
+            keyboard_type=ft.KeyboardType.NUMBER,
+        )
+
+        # Brightness
+        min_brightness_field = ft.TextField(
+            label="בהירות מינימלית",
+            value="20.0",
+            width=170,
+            keyboard_type=ft.KeyboardType.NUMBER,
+        )
+
+        max_brightness_field = ft.TextField(
+            label="בהירות מקסימלית",
+            value="240.0",
+            width=170,
+            keyboard_type=ft.KeyboardType.NUMBER,
+        )
+
+        error_text = ft.Text("", color=ERROR, size=11)
 
         progress_dlg = ft.AlertDialog(
             modal=True,
             content=ft.Column(
-                [ft.ProgressRing(), ft.Text("מריץ עיבוד...", size=16)],
+                [ft.ProgressRing(), ft.Text("מריץ עיבוד...", size=14)],
                 tight=True,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 alignment=ft.MainAxisAlignment.CENTER,
@@ -333,6 +442,66 @@ def build_image_select_screen(page: ft.Page, on_back=None, initial_files=None, i
             if max_altitude > 0 and max_altitude < min_altitude:
                 problems.append("• הגובה המרבי חייב להיות גדול מהגובה המינימלי")
 
+            quality_filter = {
+                "enabled": quality_filter_enabled_cb.value,
+                "selected_sensor_suffix": sensor_type_picker.value,
+                "min_distance_meters": 200.0,
+                "max_speed_mps": 5.0,
+                "max_digital_zoom": 1.0,
+                "min_blur_score": 500.0,
+                "min_width": 3000,
+                "min_height": 2000,
+                "max_iso": 1600,
+                "min_brightness": 20.0,
+                "max_brightness": 240.0,
+            }
+
+            if quality_filter_enabled_cb.value:
+                try:
+                    quality_filter["min_distance_meters"] = float(min_distance_field.value or "200.0")
+                except Exception:
+                    problems.append("• יש להזין מרחק מינימלי תקין")
+
+                try:
+                    quality_filter["max_speed_mps"] = float(max_speed_field.value or "5.0")
+                except Exception:
+                    problems.append("• יש להזין מהירות מקסימלית תקינה")
+
+                try:
+                    quality_filter["max_digital_zoom"] = float(max_zoom_field.value or "1.0")
+                except Exception:
+                    problems.append("• יש להזין זום דיגיטלי תקין")
+
+                try:
+                    quality_filter["min_blur_score"] = float(min_blur_field.value or "500.0")
+                except Exception:
+                    problems.append("• יש להזין Blur score תקין")
+
+                try:
+                    quality_filter["min_width"] = int(min_width_field.value or "3000")
+                except Exception:
+                    problems.append("• יש להזין רוחב מינימלי תקין")
+
+                try:
+                    quality_filter["min_height"] = int(min_height_field.value or "2000")
+                except Exception:
+                    problems.append("• יש להזין גובה מינימלי תקין")
+
+                try:
+                    quality_filter["max_iso"] = int(max_iso_field.value or "1600")
+                except Exception:
+                    problems.append("• יש להזין ISO מקסימלי תקין")
+
+                try:
+                    quality_filter["min_brightness"] = float(min_brightness_field.value or "20.0")
+                except Exception:
+                    problems.append("• יש להזין בהירות מינימלית תקינה")
+
+                try:
+                    quality_filter["max_brightness"] = float(max_brightness_field.value or "240.0")
+                except Exception:
+                    problems.append("• יש להזין בהירות מקסימלית תקינה")
+
             if problems:
                 error_text.value = "\n".join(problems)
                 page.update()
@@ -360,15 +529,7 @@ def build_image_select_screen(page: ft.Page, on_back=None, initial_files=None, i
                     selected_drone,
                     None,
                     True,
-                    {
-                        "blur_threshold": 10.0,
-                        "min_relative_altitude": min_altitude,
-                        "max_relative_altitude": max_altitude,
-                        "allow_thermal": sensor_type_picker.value == "T",
-                        "allow_visible": sensor_type_picker.value in ["W", "Z"],
-                        "allow_zoom": sensor_type_picker.value == "Z",
-                        "allow_wide": sensor_type_picker.value == "W",
-                    },
+                    quality_filter,
                 )
             except Exception as err:
                 progress_dlg.open = False
@@ -399,8 +560,42 @@ def build_image_select_screen(page: ft.Page, on_back=None, initial_files=None, i
             bgcolor=PRIMARY,
             color=TEXT_PRIMARY,
             style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
-            width=260,
+            width=150,
             on_click=on_process_clicked,
+        )
+
+        filter_controls = ft.Column(
+            [
+                screen_title,
+                screen_subtitle,
+                ft.Divider(opacity=0.15),
+                selected_label,
+                filter_description,
+                sensor_type_picker,
+                ft.Row([min_altitude_field, max_altitude_field], spacing=12),
+                ft.Divider(opacity=0.1),
+                quality_filter_enabled_cb,
+                quality_filter_title,
+                ft.Row([min_distance_field, max_speed_field], spacing=12),
+                ft.Row([max_zoom_field, min_blur_field], spacing=12),
+                ft.Row([min_width_field, min_height_field], spacing=12),
+                ft.Row([max_iso_field], spacing=12),
+                ft.Row([min_brightness_field, max_brightness_field], spacing=12),
+                ft.Container(height=4),
+                process_btn,
+                ft.Container(height=4),
+                error_text,
+            ],
+            spacing=6,
+            width=720,
+            horizontal_alignment=ft.CrossAxisAlignment.START,
+        )
+
+        # Wrap in scrollable column for accessibility
+        scrollable_controls = ft.Column(
+            [filter_controls],
+            scroll=ft.ScrollMode.AUTO,
+            expand=True,
         )
 
         def back_to_select(_):
@@ -412,36 +607,6 @@ def build_image_select_screen(page: ft.Page, on_back=None, initial_files=None, i
                 initial_drone=selected_drone,
             ))
             page.update()
-
-        screen_title = ft.Text(
-            "הגדרות סינון לעיבוד",
-            size=28,
-            weight=ft.FontWeight.BOLD,
-            color=TEXT_PRIMARY,
-        )
-        screen_subtitle = ft.Text(
-            "בחרו אילו סוגי תמונות לעבד ואיזה טווח גובה לשמור.",
-            size=14,
-            color=TEXT_TERTIARY,
-        )
-
-        filter_controls = ft.Column(
-            [
-                screen_title,
-                screen_subtitle,
-                ft.Divider(opacity=0.15),
-                selected_label,
-                filter_description,
-                sensor_type_picker,
-                ft.Row([min_altitude_field, max_altitude_field], spacing=16),
-                ft.Container(height=8),
-                process_btn,
-                error_text,
-            ],
-            spacing=18,
-            width=720,
-            horizontal_alignment=ft.CrossAxisAlignment.START,
-        )
 
         back_btn = ft.TextButton(
             "חזרה לבחירת תמונות",
@@ -456,7 +621,7 @@ def build_image_select_screen(page: ft.Page, on_back=None, initial_files=None, i
         return ft.Column(
             controls=[
                 ft.Container(content=back_btn, alignment=ft.alignment.top_right, padding=ft.Padding(0, 16, 16, 0)),
-                ft.Container(expand=True, alignment=ft.alignment.center, content=ft.Card(content=ft.Container(padding=24, content=filter_controls))),
+                ft.Container(expand=True, alignment=ft.alignment.center, content=ft.Card(content=ft.Container(padding=16, content=scrollable_controls))),
             ],
             expand=True,
         )

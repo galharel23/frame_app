@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import re
 import shutil
@@ -65,7 +66,17 @@ def _load_quality_filter_config(session_dir: str) -> dict:
     """
     cfg_path = os.path.join(session_dir, "config.json")
     defaults = {
-        "blur_threshold": 10.0,
+        "enabled": True,
+        "selected_sensor_suffix": None,
+        "min_distance_meters": 200.0,
+        "max_speed_mps": 5.0,
+        "max_digital_zoom": 1.0,
+        "min_blur_score": 500.0,
+        "min_width": 3000,
+        "min_height": 2000,
+        "max_iso": 1600,
+        "min_brightness": 20.0,
+        "max_brightness": 240.0,
         "min_relative_altitude": 3.0,
         "max_relative_altitude": 500.0,
         "allow_thermal": True,
@@ -78,9 +89,28 @@ def _load_quality_filter_config(session_dir: str) -> dict:
             with open(cfg_path, "r", encoding="utf-8") as f:
                 cfg = json.load(f)
                 quality = cfg.get("quality_filter", {}) or {}
-                defaults["blur_threshold"] = float(quality.get("blur_threshold", defaults["blur_threshold"]))
-                defaults["min_relative_altitude"] = float(quality.get("min_relative_altitude", defaults["min_relative_altitude"]))
-                defaults["max_relative_altitude"] = float(quality.get("max_relative_altitude", defaults["max_relative_altitude"]))
+                defaults["enabled"] = bool(quality.get("enabled", defaults["enabled"]))
+                defaults["selected_sensor_suffix"] = quality.get(
+                    "selected_sensor_suffix",
+                    quality.get("sensor_type", quality.get("sensor_suffix", defaults["selected_sensor_suffix"])),
+                )
+                defaults["min_distance_meters"] = float(quality.get("min_distance_meters", defaults["min_distance_meters"]))
+                defaults["max_speed_mps"] = float(quality.get("max_speed_mps", defaults["max_speed_mps"]))
+                defaults["max_digital_zoom"] = float(quality.get("max_digital_zoom", defaults["max_digital_zoom"]))
+                defaults["min_blur_score"] = float(
+                    quality.get("min_blur_score", quality.get("blur_threshold", defaults["min_blur_score"]))
+                )
+                defaults["min_width"] = int(quality.get("min_width", defaults["min_width"]))
+                defaults["min_height"] = int(quality.get("min_height", defaults["min_height"]))
+                defaults["max_iso"] = int(quality.get("max_iso", defaults["max_iso"]))
+                defaults["min_brightness"] = float(quality.get("min_brightness", defaults["min_brightness"]))
+                defaults["max_brightness"] = float(quality.get("max_brightness", defaults["max_brightness"]))
+                defaults["min_relative_altitude"] = float(
+                    quality.get("min_relative_altitude", defaults["min_relative_altitude"])
+                )
+                defaults["max_relative_altitude"] = float(
+                    quality.get("max_relative_altitude", defaults["max_relative_altitude"])
+                )
                 defaults["allow_thermal"] = bool(quality.get("allow_thermal", defaults["allow_thermal"]))
                 defaults["allow_visible"] = bool(quality.get("allow_visible", defaults["allow_visible"]))
                 defaults["allow_zoom"] = bool(quality.get("allow_zoom", defaults["allow_zoom"]))
@@ -126,6 +156,64 @@ def _compute_blur_score(image_path: str) -> float:
         return 0.0
 
 
+def _compute_image_brightness(image_path: str) -> float:
+    """Estimate image brightness using grayscale mean."""
+    try:
+        with Image.open(image_path) as img:
+            gray = img.convert("L")
+            stats = ImageStat.Stat(gray)
+            return float(stats.mean[0])
+    except Exception as e:
+        logger.warning(f"Could not compute brightness for {image_path}: {e}")
+        return 0.0
+
+
+def _get_iso_from_exif_tags(tags: dict) -> int | None:
+    """Extract ISO from EXIF tags if present."""
+    try:
+        if "EXIF ISOSpeedRatings" in tags:
+            value = tags["EXIF ISOSpeedRatings"].values
+            if isinstance(value, (list, tuple)) and value:
+                return int(value[0])
+            return int(value)
+    except Exception:
+        pass
+    return None
+
+
+def _get_digital_zoom_from_exif_tags(tags: dict) -> float:
+    """Extract digital zoom value from EXIF tags if present."""
+    try:
+        for tag_name in ["EXIF DigitalZoomRatio", "MakerNote DigitalZoomRatio", "DigitalZoomRatio"]:
+            if tag_name in tags:
+                value = tags[tag_name].values
+                if isinstance(value, (list, tuple)) and value:
+                    raw = value[0]
+                else:
+                    raw = value
+                if hasattr(raw, "numerator") and hasattr(raw, "denominator") and raw.denominator != 0:
+                    return float(raw.numerator) / float(raw.denominator)
+                return float(raw)
+    except Exception:
+        pass
+    return 1.0
+
+
+def _calculate_distance_meters(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Calculate haversine distance between two GPS coordinates."""
+    R = 6371000.0
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+    a = (
+        math.sin(delta_phi / 2) ** 2
+        + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
+    )
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
+
 def _classify_image_quality(
     filename: str,
     full_path: str,
@@ -134,6 +222,8 @@ def _classify_image_quality(
     los_fields: dict,
     session_dir: str,
     quality_config: dict,
+    json_data: dict,
+    previous_position: tuple[float, float] | None = None,
 ) -> tuple[str, dict]:
     """
     Classify the image as GOOD or BAD based on quality criteria.
@@ -143,14 +233,108 @@ def _classify_image_quality(
     is_thermal = sensor_type.upper() == "IR"
     altitude = _get_image_altitude(tags, relative_alt)
     blur_score = _compute_blur_score(full_path)
+    brightness = _compute_image_brightness(full_path)
+    iso = _get_iso_from_exif_tags(tags)
+    digital_zoom = _get_digital_zoom_from_exif_tags(tags)
+
+    width = json_data.get("BasicData", {}).get("width")
+    height = json_data.get("BasicData", {}).get("height")
+    speed_mps = json_data.get("PlatformData", {}).get("groundSpeed")
+    current_lat = json_data.get("CameraPosition", {}).get("gpsLatitude")
+    current_lon = json_data.get("CameraPosition", {}).get("gpsLongitude")
+
+    distance_meters = None
+    if previous_position and current_lat is not None and current_lon is not None:
+        prev_lat, prev_lon = previous_position
+        if prev_lat is not None and prev_lon is not None:
+            distance_meters = _calculate_distance_meters(prev_lat, prev_lon, current_lat, current_lon)
 
     reasons = []
-    if blur_score < quality_config["blur_threshold"]:
-        reasons.append("blurred image")
-    if altitude < quality_config["min_relative_altitude"]:
-        reasons.append("altitude below threshold")
-    if altitude > quality_config["max_relative_altitude"]:
-        reasons.append("altitude above threshold")
+    if not quality_config.get("enabled", True):
+        classification = "good"
+        quality_data = {
+            "classification": classification,
+            "sensorType": sensor_type,
+            "sensorSuffix": sensor_suffix,
+            "isThermal": is_thermal,
+            "blurScore": round(blur_score, 2),
+            "altitude": round(altitude, 2),
+            "enabled": False,
+            "selectedSensorSuffix": quality_config.get("selected_sensor_suffix"),
+            "distanceMeters": distance_meters,
+            "speedMps": speed_mps,
+            "digitalZoom": digital_zoom,
+            "minBlurScore": quality_config.get("min_blur_score", 500.0),
+            "width": width,
+            "height": height,
+            "iso": iso,
+            "brightness": brightness,
+            "minRelativeAltitude": quality_config.get("min_relative_altitude", 3.0),
+            "maxRelativeAltitude": quality_config.get("max_relative_altitude", 500.0),
+            "allowThermal": quality_config.get("allow_thermal", True),
+            "allowVisible": quality_config.get("allow_visible", True),
+            "allowZoom": quality_config.get("allow_zoom", True),
+            "allowWide": quality_config.get("allow_wide", True),
+            "reasons": reasons,
+        }
+        return classification, quality_data
+
+    selected_suffix = quality_config.get("selected_sensor_suffix")
+    if selected_suffix and sensor_suffix != selected_suffix:
+        reasons.append(f"image type '{sensor_suffix or 'unknown'}' is not selected")
+
+    if distance_meters is not None and distance_meters < quality_config.get("min_distance_meters", 200.0):
+        reasons.append(
+            f"too close to previous image ({distance_meters:.1f}m < {quality_config.get('min_distance_meters', 200.0)}m)"
+        )
+
+    if speed_mps is not None and speed_mps > quality_config.get("max_speed_mps", 5.0):
+        reasons.append(
+            f"platform moving too fast ({speed_mps:.2f} > {quality_config.get('max_speed_mps', 5.0)})"
+        )
+
+    if digital_zoom > quality_config.get("max_digital_zoom", 1.0):
+        reasons.append(
+            f"digital zoom too high ({digital_zoom}x > {quality_config.get('max_digital_zoom', 1.0)}x)"
+        )
+
+    if blur_score < quality_config.get("min_blur_score", 500.0):
+        reasons.append(
+            f"image is blurry (blur_score {blur_score:.1f} < {quality_config.get('min_blur_score', 500.0)})"
+        )
+
+    if width is not None and width < quality_config.get("min_width", 3000):
+        reasons.append(
+            f"image width too small ({width} < {quality_config.get('min_width', 3000)})"
+        )
+
+    if height is not None and height < quality_config.get("min_height", 2000):
+        reasons.append(
+            f"image height too small ({height} < {quality_config.get('min_height', 2000)})"
+        )
+
+    if iso is not None and iso > quality_config.get("max_iso", 1600):
+        reasons.append(
+            f"ISO too high ({iso} > {quality_config.get('max_iso', 1600)})"
+        )
+
+    if brightness < quality_config.get("min_brightness", 20.0):
+        reasons.append(
+            f"image too dark ({brightness:.1f} < {quality_config.get('min_brightness', 20.0)})"
+        )
+    elif brightness > quality_config.get("max_brightness", 240.0):
+        reasons.append(
+            f"image too bright ({brightness:.1f} > {quality_config.get('max_brightness', 240.0)})"
+        )
+
+    if altitude < quality_config.get("min_relative_altitude", 3.0):
+        reasons.append(
+            f"altitude below threshold ({altitude:.1f} < {quality_config.get('min_relative_altitude', 3.0)})"
+        )
+    elif altitude > quality_config.get("max_relative_altitude", 500.0):
+        reasons.append(
+            f"altitude above threshold ({altitude:.1f} > {quality_config.get('max_relative_altitude', 500.0)})"
+        )
 
     if sensor_suffix == "T" and not quality_config.get("allow_thermal", True):
         reasons.append("thermal images are excluded")
@@ -161,7 +345,6 @@ def _classify_image_quality(
     elif sensor_suffix not in {"T", "Z", "W"} and not quality_config.get("allow_visible", True):
         reasons.append("visible images are excluded")
 
-    # Images with missing critical fields should be treated as bad.
     if los_fields.get("losAzimuth", 0.0) == 0.0 or los_fields.get("losPitch", 0.0) == 0.0 or relative_alt == 0.0:
         reasons.append("missing critical flight metadata")
 
@@ -173,7 +356,16 @@ def _classify_image_quality(
         "isThermal": is_thermal,
         "blurScore": round(blur_score, 2),
         "altitude": round(altitude, 2),
-        "blurThreshold": quality_config.get("blur_threshold", 10.0),
+        "enabled": quality_config.get("enabled", True),
+        "selectedSensorSuffix": selected_suffix,
+        "distanceMeters": distance_meters,
+        "speedMps": speed_mps,
+        "digitalZoom": digital_zoom,
+        "minBlurScore": quality_config.get("min_blur_score", 500.0),
+        "width": width,
+        "height": height,
+        "iso": iso,
+        "brightness": brightness,
         "minRelativeAltitude": quality_config.get("min_relative_altitude", 3.0),
         "maxRelativeAltitude": quality_config.get("max_relative_altitude", 500.0),
         "allowThermal": quality_config.get("allow_thermal", True),
@@ -191,6 +383,7 @@ def _copy_to_quality_dir(
     full_path: str,
     json_data: dict,
     classification: str,
+    quality_data: dict | None = None,
 ) -> None:
     """
     Copy the image and its JSON metadata into the GOOD_IMAGES or BAD_IMAGES folder.
@@ -209,7 +402,13 @@ def _copy_to_quality_dir(
         pass
 
     try:
-        _write_json(target_json_path, json_data)
+        # For bad images, embed the quality report into the JSON saved under BAD_IMAGES
+        if classification != "good" and quality_data:
+            json_with_quality = dict(json_data)
+            json_with_quality["QualityControl"] = quality_data
+            _write_json(target_json_path, json_with_quality)
+        else:
+            _write_json(target_json_path, json_data)
     except Exception as e:
         logger.warning(f"Could not write quality JSON for {filename}: {e}")
 
@@ -251,7 +450,8 @@ def _process_single_image(
     drone_type: str,
     session_dir: str,
     quality_config: dict,
-) -> str:
+    previous_position: tuple[float, float] | None = None,
+) -> tuple[str, tuple[float, float] | None]:
     """
     Process a single image:
       - Read EXIF
@@ -307,7 +507,7 @@ def _process_single_image(
             drone_type,
         )
 
-        # Add quality metadata and classification
+        # Determine quality classification internally, but do not write it into JSON output.
         classification, quality_data = _classify_image_quality(
             filename=filename,
             full_path=full_path,
@@ -316,11 +516,12 @@ def _process_single_image(
             los_fields=los_fields,
             session_dir=session_dir,
             quality_config=quality_config,
+            json_data=json_data,
+            previous_position=previous_position,
         )
-        json_data["QualityControl"] = quality_data
 
-        # Save a copy into the quality folders as well
-        _copy_to_quality_dir(session_dir, filename, full_path, json_data, classification)
+        # Save a copy into the quality folders without embedding QualityControl in the JSON.
+        _copy_to_quality_dir(session_dir, filename, full_path, json_data, classification, quality_data)
 
         # Decide which folder to use for the JSON output
         if has_los_fields and has_relative_alt:
@@ -339,7 +540,7 @@ def _process_single_image(
             output_path = os.path.join(image_dir, f"{base_name}.json")
             logger.info(f"✓ {filename}: Successfully extracted critical fields → {output_path}")
             _write_json(output_path, json_data)
-            return "success"
+            return "success", (lat, lon)
 
         # Missing some critical fields → goes to fail_output
         base_name, _ = os.path.splitext(filename)
@@ -359,7 +560,7 @@ def _process_single_image(
             missing.append("relative altitude")
         logger.warning(f"⚠️ {filename}: Missing critical fields ({', '.join(missing)}) → {output_path}")
         _write_json(output_path, json_data)
-        return "failed_missing"
+        return "failed_missing", (lat, lon)
 
     except Exception as e:
         logger.error(f"✗ {filename}: Exception during processing: {e}", exc_info=True)
@@ -378,19 +579,6 @@ def _process_single_image(
                 full_path,
                 drone_type,
             )
-            json_data["QualityControl"] = {
-                "classification": "bad",
-                "sensorType": classify_sensor_type_from_name(filename),
-                "isThermal": classify_sensor_type_from_name(filename).upper() == "IR",
-                "blurScore": 0.0,
-                "altitude": 0.0,
-                "blurThreshold": quality_config.get("blur_threshold", 10.0),
-                "minRelativeAltitude": quality_config.get("min_relative_altitude", 3.0),
-                "maxRelativeAltitude": quality_config.get("max_relative_altitude", 500.0),
-                "allowThermal": quality_config.get("allow_thermal", True),
-                "allowVisible": quality_config.get("allow_visible", True),
-                "reasons": ["exception during processing"],
-            }
             _copy_to_quality_dir(session_dir, filename, full_path, json_data, "bad")
             fallback_path = os.path.join(
                 fail_output_dir,
@@ -400,7 +588,7 @@ def _process_single_image(
         except Exception as inner_e:
             print(f"❌ Could not create JSON for {filename}: {inner_e}")
 
-        return "failed_exception"
+        return "failed_exception", (lat, lon)
 
 
 def _write_fns_marker(
@@ -481,11 +669,12 @@ def process_images_to_individual_json(session_dir: str, drone_type: str | None =
     total_images = 0
     successful_extractions = 0
     failed_extractions = 0
+    previous_position = None
 
     # Main per-image loop
     for filename, full_path in _iter_session_images(session_dir):
         total_images += 1
-        status = _process_single_image(
+        status, image_position = _process_single_image(
             filename=filename,
             full_path=full_path,
             output_dir=output_dir,
@@ -493,7 +682,10 @@ def process_images_to_individual_json(session_dir: str, drone_type: str | None =
             drone_type=drone_type,
             session_dir=session_dir,
             quality_config=quality_config,
+            previous_position=previous_position,
         )
+        if image_position is not None:
+            previous_position = image_position
 
         if status == "success":
             successful_extractions += 1
